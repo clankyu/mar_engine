@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include <immintrin.h>
 #include <xmmintrin.h>
 
@@ -39,10 +40,32 @@ inline f32 lerp(f32 a, f32 b, f32 alpha) {
     return result;
 }
 
+// todo: optimize
+inline f32 abs(f32 n) {
+    f32 result = n < 0.0f ? n * -1 : n;
+    return result;
+}
+
+inline f32 floor(f32 n) {
+    f32 result = (s32)n;
+    f32 negative_factor = (n < 0.0f) ? 1.0f : 0.0f;
+    result -= negative_factor;
+    
+    return result;
+}
+
+inline f32 ceil(f32 n) {
+    f32 result = (s32)n;
+    f32 should_add_one = (result != n && result > 0.0f) ? 1.0f : 0.0f;
+    result += should_add_one;
+    
+    return result;
+}
+
 // very naive implementation, later use compiler instrisics for roundss instruction for x86
 inline f32 round(f32 n) {
     f32 result = 0.0f;
-    f32 n_int = (s64)n;
+    f32 n_int = (s32)n;
 
     if (n > 0.0f) {
         result = (n - n_int >= 0.5f) ? n_int + 1 : n_int;
@@ -1054,10 +1077,9 @@ I think the dot products represent the translation? I'm not sure, I need to look
 
 inline m4f m4f_lookat(v3f from, v3f to, v3f up) {
     m4f result = m4f_identity();
-    v3f z = to - from;
-    
-    v3f x = v3f_cross(up, z);
-    v3f y = v3f_cross(z, x);
+    v3f z = v3f_norm(to - from);
+    v3f x = v3f_norm(v3f_cross(up, z));
+    v3f y = v3f_norm(v3f_cross(z, x));
 
     f32 xdot = -v3f_dot(from, x);
     f32 ydot = -v3f_dot(from, y);

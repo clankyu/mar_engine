@@ -23,6 +23,8 @@ int main(int argc, char **argv) {
         update_delta_time();
         poll_sdl_events();
         
+        update_camera(&engine.camera);
+        
         f32 fps = 1.0f / engine.delta_time;
         system("cls");
         printf("fps: %f\n", fps);

@@ -85,18 +85,10 @@ void draw_triangle(Frame_Buffer *frame_buffer, Clip_Triangle clip_triangle) {
     f32 half_width = width * 0.5f;
     f32 half_height = height * 0.5f;
     
-    printf("v0: ( %.2f %.2f %.2f %.2f )\n", clip_triangle.v0.pos.x, clip_triangle.v0.pos.y, clip_triangle.v0.pos.z, clip_triangle.v0.pos.w);
-    printf("v1: ( %.2f %.2f %.2f %.2f )\n", clip_triangle.v1.pos.x, clip_triangle.v1.pos.y, clip_triangle.v1.pos.z, clip_triangle.v1.pos.w);
-    printf("v2: ( %.2f %.2f %.2f %.2f )\n", clip_triangle.v2.pos.x, clip_triangle.v2.pos.y, clip_triangle.v2.pos.z, clip_triangle.v2.pos.w);
-    
     // x and y range from [-1, 1] and z [1, 0] (1 being exactly on the near plane and 0 on the far plane)
     v4f v0_ndc = clip_triangle.v0.pos / clip_triangle.v0.pos.w;
     v4f v1_ndc = clip_triangle.v1.pos / clip_triangle.v1.pos.w;
     v4f v2_ndc = clip_triangle.v2.pos / clip_triangle.v2.pos.w;
-    
-    printf("v0 ndc: ( %.2f %.2f %.2f %.2f )\n", v0_ndc.x, v0_ndc.y, v0_ndc.z, v0_ndc.w);
-    printf("v1 ndc: ( %.2f %.2f %.2f %.2f )\n", v1_ndc.x, v1_ndc.y, v1_ndc.z, v1_ndc.w);
-    printf("v2 ndc: ( %.2f %.2f %.2f %.2f )\n", v2_ndc.x, v2_ndc.y, v2_ndc.z, v2_ndc.w);
     
     Colorf c0 = color8_to_colorf(clip_triangle.v0.color) / clip_triangle.v0.pos.w;
     Colorf c1 = color8_to_colorf(clip_triangle.v1.color) / clip_triangle.v1.pos.w;
@@ -108,10 +100,10 @@ void draw_triangle(Frame_Buffer *frame_buffer, Clip_Triangle clip_triangle) {
     Raster_Vertex v2 = ndc_to_raster(v2_ndc, clip_triangle.v2.pos.w, c2, width, height);
     order_vertices_clockwise(&v0, &v1, &v2);
 
-    f32 x_min = MAX(MIN(MIN(v0.x, v1.x), v2.x), 0.0f);
-    f32 y_min = MAX(MIN(MIN(v0.y, v1.y), v2.y), 0.0f);
-    f32 x_max = MIN(MAX(MAX(v0.x, v1.x), v2.x), width - 1.0f);
-    f32 y_max = MIN(MAX(MAX(v0.y, v1.y), v2.y), height - 1.0f);
+    f32 x_min = round(MAX(MIN(MIN(v0.x, v1.x), v2.x), 0.0f));
+    f32 y_min = round(MAX(MIN(MIN(v0.y, v1.y), v2.y), 0.0f));
+    f32 x_max = round(MIN(MAX(MAX(v0.x, v1.x), v2.x), width - 1.0f));
+    f32 y_max = round(MIN(MAX(MAX(v0.y, v1.y), v2.y), height - 1.0f));
     
     v2f p0 = create_v2f(x_min, y_min);
 
@@ -164,10 +156,10 @@ void draw_triangle(Frame_Buffer *frame_buffer, Clip_Triangle clip_triangle) {
                 b *= interpolated_z * 255.0f;
                 a *= interpolated_z * 255.0f;
 
-                u32 rint = r;
-                u32 gint = g;
-                u32 bint = b;
-                u32 aint = a;
+                u32 rint = round(r);
+                u32 gint = round(g);
+                u32 bint = round(b);
+                u32 aint = round(a);
 
                 u32 color = color_bytes_to_u32(rint, gint, bint, aint);
 

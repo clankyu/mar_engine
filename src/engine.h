@@ -26,6 +26,7 @@ struct Camera {
     f32 fov;
     f32 sensitivity;
     f32 speed; // m/s
+    f32 speed_boost;
 
     f32 far_plane;
     f32 near_plane;
@@ -116,6 +117,8 @@ inline v2f get_delta_mouse_pos() {
 
     return result;
 }
+
+void update_camera(Camera *camera);
 
 void move_camera(Camera *camera, v3f pos, v3f at, v3f up);
 void rotate_camera_by_mouse(Camera *camera);

@@ -46,10 +46,11 @@ Camera camera_init() {
     result.rotation = create_v3f(0.0f, 0.0f, 0.0f);
     result.up = create_v3f(0.0f, 1.0f, 0.0f);
     result.near_plane = 0.5f;
-    result.far_plane = 100.0f;
+    result.far_plane = 1000.0f;
     result.fov = DEFAULT_FOV;
-    result.sensitivity = 0.5f;
-    result.speed = 0.2f;
+    result.sensitivity = 30.0f;
+    result.speed = 0.1f;
+    result.speed_boost = 2.0f;
     
     return result;
 }
@@ -66,13 +67,13 @@ Frame_Buffer frame_buffer_init(u32 width, u32 height) {
 
 void poll_sdl_events() {
     SDL_Event event;
-    f32 dt = engine.delta_time;
 
     // mouse_state holds bitmask of pressed buttons on the mouse, check sdl docs
-    //engine.mouse.old_pos = engine.mouse.pos;
-    //u32 mouse_state = SDL_GetMouseState(&engine.mouse.pos.x, &engine.mouse.pos.y);
-    //engine.mouse.pos.y *= -1.0f;
-
+    engine.mouse.old_pos = engine.mouse.pos;
+    u32 mouse_state = SDL_GetMouseState(&engine.mouse.pos.x, &engine.mouse.pos.y);
+    engine.mouse.pos.y *= -1.0f;
+    engine.mouse.delta_pos = {};
+    
     while (SDL_PollEvent(&event)) {
         // Event stuff.
 
@@ -93,11 +94,6 @@ void poll_sdl_events() {
             __debugbreak();
         }
 
-        // Camera rotation.
-
-        v3f delta_camera_rotation = {};
-
-        engine.mouse.delta_pos = {};
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
             f32 xrel = event.motion.xrel;
             f32 yrel = event.motion.yrel;
@@ -105,58 +101,6 @@ void poll_sdl_events() {
 
             engine.mouse.delta_pos = create_v2f(xrel, yrel);
         }
-
-        delta_camera_rotation.pitch += engine.mouse.delta_pos.y;
-        delta_camera_rotation.yaw += engine.mouse.delta_pos.x;
-
-        if (event.key.scancode == SDL_SCANCODE_LEFT) {
-            delta_camera_rotation.yaw -= 5.0f * dt;
-        }
-        if (event.key.scancode == SDL_SCANCODE_RIGHT) {
-            delta_camera_rotation.yaw += 5.0f * dt;
-        }
-        if (event.key.scancode == SDL_SCANCODE_UP) {
-            delta_camera_rotation.pitch += 10.0f * dt;
-        }
-        if (event.key.scancode == SDL_SCANCODE_DOWN) {
-            delta_camera_rotation.pitch -= 10.0f * dt;
-        }
-
-        rotate_camera(&engine.camera, delta_camera_rotation);
-
-        // Camera position stuff.
-
-        if (event.key.scancode == SDL_SCANCODE_F2) {
-            engine.camera.rotation = {};
-            engine.camera.pos = create_v3f(0.0f);
-        }
-
-        v3f delta_camera_pos = {};
-        if (event.key.scancode == SDL_SCANCODE_W) {
-            delta_camera_pos.z += 1.0f;
-        }
-        if (event.key.scancode == SDL_SCANCODE_S) {
-            delta_camera_pos.z -= 1.0f;
-        }
-        if (event.key.scancode == SDL_SCANCODE_A) {
-            delta_camera_pos.x -= 1.0f;
-        }
-        if (event.key.scancode == SDL_SCANCODE_D) {
-            delta_camera_pos.x += 1.0f;
-        }
-        if (event.key.scancode == SDL_SCANCODE_SPACE) {
-            delta_camera_pos.y += 1.0f;
-        }
-        if (event.key.scancode == SDL_SCANCODE_LCTRL) {
-            delta_camera_pos.y -= 1.0f;
-        }
-        
-        delta_camera_pos = delta_camera_pos * dt;
-
-        v3f at = v3f_lookat(engine.camera.rotation);
-        v3f up = create_v3f(0.0f, 1.0f, 0.0f);
-
-        move_camera(&engine.camera, delta_camera_pos, at, up);
     }
 }
 
@@ -197,9 +141,6 @@ void move_camera(Camera *camera, v3f translation, v3f at, v3f up) {
     final_translation += y_direction * up;
     final_translation += z_direction * forward;
     
-    // this assumes we are moving the camera by kinematics and not plain translation
-    final_translation = final_translation * camera->speed;
-
     camera->pos += final_translation;
 }
 
@@ -208,4 +149,69 @@ void rotate_camera(Camera *camera, v3f delta_rotation) {
 
     camera->rotation += delta_rotation * sensitivity;
     camera->rotation.pitch = clamp(camera->rotation.pitch, -89.9f, 89.9f);
+}
+
+void update_camera(Camera *camera) {
+    const bool *keyboard_state = SDL_GetKeyboardState(NULL);    
+    f32 dt = engine.delta_time;
+    
+    // Camera rotation.
+    v3f delta_camera_rotation = {};
+    delta_camera_rotation.pitch += engine.mouse.delta_pos.y;
+    delta_camera_rotation.yaw += engine.mouse.delta_pos.x;
+
+    if (keyboard_state[SDL_SCANCODE_LEFT]) {
+        delta_camera_rotation.yaw -= 10.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_RIGHT]) {
+        delta_camera_rotation.yaw += 10.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_UP]) {
+        delta_camera_rotation.pitch += 10.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_DOWN]) {
+        delta_camera_rotation.pitch -= 10.0f;
+    }
+
+    delta_camera_rotation = delta_camera_rotation * dt;
+
+    // Camera position.
+
+    if (keyboard_state[SDL_SCANCODE_F2]) {
+        engine.camera.rotation = {};
+        engine.camera.pos = {};
+    }
+
+    v3f delta_camera_pos = {};
+    f32 speed = engine.camera.speed;
+    f32 speed_boost = 1.0f;
+    if (keyboard_state[SDL_SCANCODE_W]) {
+        delta_camera_pos.z += 1.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_S]) {
+        delta_camera_pos.z -= 1.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_A]) {
+        delta_camera_pos.x -= 1.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_D]) {
+        delta_camera_pos.x += 1.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_SPACE]) {
+        delta_camera_pos.y += 1.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_LCTRL]) {
+        delta_camera_pos.y -= 1.0f;
+    }
+    if (keyboard_state[SDL_SCANCODE_LSHIFT]) {
+        speed_boost = engine.camera.speed_boost;
+    }
+    
+    delta_camera_pos = delta_camera_pos * speed * speed_boost * dt;
+
+    v3f at = v3f_norm(v3f_lookat(engine.camera.rotation));
+    v3f up = v3f_norm(create_v3f(0.0f, 1.0f, 0.0f));
+
+    rotate_camera(&engine.camera, delta_camera_rotation);
+    move_camera(&engine.camera, delta_camera_pos, at, up);
 }
