@@ -388,3 +388,63 @@ Vertex4d vertex4d_lerp(Vertex4d a, Vertex4d b, f32 alpha) {
     
     return result;
 }
+
+enum Shader_Value_Type : u32 {
+    Shader_Value_Type_f32,
+    Shader_Value_Type_v2f,
+    Shader_Value_Type_v3f,
+    Shader_Value_Type_v4f,
+    Shader_Value_Type_m3f,
+    Shader_Value_Type_m4f,
+};
+
+struct Shader_Value {
+    Shader_Value_Type type;
+    union {
+        f32 f32;
+        v2f v2f;
+        v3f v3f;
+        v4f v4f;
+        m3f m3f;
+        m4f m4f;
+    };
+};
+
+struct Shader_Uniforms {
+    u32 count;
+    Shader_Value *uniforms;
+};
+
+struct Vertex_Attributes {
+    v3f pos; 
+    v3f normal;
+    v2f uv;
+    v3f color;
+};
+
+struct Vertex_Attributes_Array {
+    v3f *positions; 
+    v3f *normals;
+    v2f *texture_coordinates;
+    v3f *colors;
+};
+
+Vertex_Attributes get_vertex_attributes(Shader *shader, u32 vertex_index);
+
+// todo: implement arenas for uniforms array and inputs and outputs
+void draw_object(Render_entity entity, Shader shader) {
+    Shader_Uniforms uniforms = shader->uniforms;
+    Vertex_Attributes_Array attributes_array = shader->vertex_attributes_array;
+    
+    for (u32 triangle_index = 0; triangle_index < entity.triangle_count; ++triangle_index) {
+        Triangle final_triangle = entity.triangles[triangle_index];
+        
+        for (u32 pos_index = 0; pos_index < 3; ++pos_index) {
+            Vertex_Attributes attributes = shader.attributes.pos
+            Vertex_Shader_Output vs_result = {};
+            final_triangle.vertices[pos_index] = vertex_shader(final_triangle.attributes, &vs_result);
+            u32 final_color = fragment_shader(
+        }
+    }
+
+}
