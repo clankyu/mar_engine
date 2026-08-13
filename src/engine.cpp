@@ -49,7 +49,7 @@ Camera camera_init() {
     result.far_plane = 1000.0f;
     result.fov = DEFAULT_FOV;
     result.sensitivity = 30.0f;
-    result.speed = 0.1f;
+    result.speed = 0.05;
     result.speed_boost = 2.0f;
     
     return result;

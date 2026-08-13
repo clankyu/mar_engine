@@ -106,8 +106,9 @@ inline Color8 operator-(Color8 a, r32 b) {
     return result;
 }
 
+// todo: i think some of these are straight up wrong lol
 inline Color8 operator*(Color8 color, r32 n) {
-    Color8 result;
+    Color8 result = color;
     result.r *= n;
     result.g *= n;
     result.b *= n;
@@ -117,7 +118,7 @@ inline Color8 operator*(Color8 color, r32 n) {
 }
 
 inline Color8 operator/(Color8 color, r32 n) {
-    Color8 result;
+    Color8 result = color;
     result.r /= n;
     result.g /= n;
     result.b /= n;

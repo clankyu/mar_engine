@@ -389,6 +389,7 @@ Vertex4d vertex4d_lerp(Vertex4d a, Vertex4d b, f32 alpha) {
     return result;
 }
 
+/*
 enum Shader_Value_Type : u32 {
     Shader_Value_Type_f32,
     Shader_Value_Type_v2f,
@@ -448,3 +449,4 @@ void draw_object(Render_entity entity, Shader shader) {
     }
 
 }
+*/
