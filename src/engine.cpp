@@ -2,6 +2,7 @@
 #include <memory.h>
 #include "util.h"
 #include "engine.h"
+#include "memory.h"
 
 Engine engine;
 
@@ -37,6 +38,9 @@ s32 init_engine() {
     engine.running = true;
     engine.paused = false;
 
+    engine.shader_arena = arena_init(KiB(4));
+    arena_touch_pages(&engine.shader_arena);
+    
     return 0;
 }
 

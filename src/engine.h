@@ -54,24 +54,31 @@ struct Engine {
     f32 current_time;
     f32 previous_time;
     f32 delta_time;
+    
     struct Window {
         SDL_Window *handle;
         u32 width;
         u32 height;
     } window;
+    
     struct Mouse {
         v2f pos;
         v2f old_pos;
         v2f delta_pos;
         b32 inside_window;
     } mouse;
+    
     Camera camera;
+    
     SDL_Renderer *renderer;
     SDL_Texture *texture;
     Frame_Buffer frame_buffer;
+    
     bool running;
     bool paused;
     bool should_pause_at_rendering;
+    
+    Arena shader_arena;
 };
 
 extern Engine engine;
