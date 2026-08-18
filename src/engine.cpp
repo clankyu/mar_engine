@@ -38,7 +38,7 @@ s32 init_engine() {
     engine.running = true;
     engine.paused = false;
 
-    engine.shader_arena = arena_init(KiB(4));
+    engine.shader_arena = arena_init(MiB(50);
     arena_touch_pages(&engine.shader_arena);
     
     return 0;

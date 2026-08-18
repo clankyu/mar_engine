@@ -225,9 +225,27 @@ struct V3 {
             f32 roll;
         };
         struct {
+            f32 a;
+            f32 b;
+            f32 c;
+        };
+        struct {
             V2 xy;
             f32 __z;
         };
+    };
+};
+
+struct V3u {
+    union {
+        u32 x;
+        u32 y;
+        u32 z;
+    };
+    union {
+        u32 a;
+        u32 b;
+        u32 c;
     };
 };
 
@@ -431,6 +449,12 @@ struct V4 {
             f32 g;
             f32 b;
             f32 a;
+        };
+        struct {
+            f32 a;
+            f32 b;
+            f32 c;
+            f32 d;
         };
         struct {
             V2 xy;
