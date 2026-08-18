@@ -77,7 +77,7 @@ inline f32 round(f32 n) {
 }
 
 // todo: on hte whole file make it so you can make scalar operations on vector no matter the side
-struct v2f {
+struct V2 {
     union {
         struct {
             f32 x;
@@ -94,125 +94,125 @@ struct v2f {
     };
 };
 
-inline v2f operator+(v2f a, v2f b) {
-    v2f result;
+inline V2 operator+(V2 a, V2 b) {
+    V2 result;
     result.x = a.x + b.x;
     result.y = a.y + b.y;
 
     return result;
 }
 
-inline v2f& operator+=(v2f& a, v2f b) {
+inline V2& operator+=(V2& a, V2 b) {
     a = a + b;
     return a;
 }
 
-inline v2f operator+(v2f a, r32 b) {
-    v2f result;
+inline V2 operator+(V2 a, r32 b) {
+    V2 result;
     result.x = a.x + b;
     result.y = a.y + b;
 
     return result;
 }
 
-inline v2f operator+(r32 b, v2f a) {
-    v2f result = a + b;
+inline V2 operator+(r32 b, V2 a) {
+    V2 result = a + b;
     return result;
 }
 
-inline v2f operator-(v2f a, v2f b) {
-    v2f result;
+inline V2 operator-(V2 a, V2 b) {
+    V2 result;
     result.x = a.x - b.x;
     result.y = a.y - b.y;
 
     return result;
 }
 
-inline v2f& operator-=(v2f& a, v2f b) {
+inline V2& operator-=(V2& a, V2 b) {
     a = a - b;
     return a;
 }
 
-inline v2f operator-(v2f a) {
-    v2f result;
+inline V2 operator-(V2 a) {
+    V2 result;
     result.x = -a.x;
     result.y = -a.y;
 
     return result;
 }
 
-inline v2f operator-(v2f a, r32 b) {
-    v2f result;
+inline V2 operator-(V2 a, r32 b) {
+    V2 result;
     result.x = a.x - b;
     result.y = a.y - b;
 
     return result;
 }
 
-inline v2f operator*(v2f a, v2f b) {
-    v2f result;
+inline V2 operator*(V2 a, V2 b) {
+    V2 result;
     result.x = a.x * b.x;
     result.y = a.y * b.y;
 
     return result;
 }
 
-inline v2f& operator*=(v2f& a, v2f b) {
+inline V2& operator*=(V2& a, V2 b) {
     a = a * b;
     return a;
 }
 
-inline v2f operator*(v2f a, r32 b) {
-    v2f result;
+inline V2 operator*(V2 a, r32 b) {
+    V2 result;
     result.x = a.x * b;
     result.y = a.y * b;
 
     return result;
 }
 
-inline v2f operator/(v2f a, v2f b) {
-    v2f result;
+inline V2 operator/(V2 a, V2 b) {
+    V2 result;
     result.x = a.x / b.x;
     result.y = a.y / b.y;
 
     return result;
 }
 
-inline v2f& operator/=(v2f& a, v2f b) {
+inline V2& operator/=(V2& a, V2 b) {
     a = a / b;
     return a;
 }
 
-inline v2f operator/(v2f a, r32 b) {
-    v2f result;
+inline V2 operator/(V2 a, r32 b) {
+    V2 result;
     result.x = a.x / b;
     result.y = a.y / b;
 
     return result;
 }
 
-inline v2f create_v2f(f32 x, f32 y) {
-    v2f result;
+inline V2 create_v2(f32 x, f32 y) {
+    V2 result;
     result.x = x;
     result.y = y;
 
     return result;
 }
 
-inline v2f create_v2f(f32 n) {
-    v2f result;
+inline V2 create_v2(f32 n) {
+    V2 result;
     result.x = n;
     result.y = n;
 
     return result;
 }
 
-inline v2f create_v2f() {
-    v2f result = {};
+inline V2 create_v2() {
+    V2 result = {};
     return result;
 }
 
-struct v3f {
+struct V3 {
     union {
         struct {
             f32 x;
@@ -225,14 +225,14 @@ struct v3f {
             f32 roll;
         };
         struct {
-            v2f xy;
+            V2 xy;
             f32 __z;
         };
     };
 };
 
-inline v3f create_v3f(f32 x, f32 y, f32 z) {
-    v3f result;
+inline V3 create_v3(f32 x, f32 y, f32 z) {
+    V3 result;
     result.x = x;
     result.y = y;
     result.z = z;
@@ -240,8 +240,8 @@ inline v3f create_v3f(f32 x, f32 y, f32 z) {
     return result;
 }
 
-inline v3f create_v3f(f32 n) {
-    v3f result;
+inline V3 create_v3(f32 n) {
+    V3 result;
     result.x = n;
     result.y = n;
     result.z = n;
@@ -249,35 +249,35 @@ inline v3f create_v3f(f32 n) {
     return result;
 }
 
-inline v3f create_v3f() {
-    v3f result = {};
+inline V3 create_v3() {
+    V3 result = {};
     return result;
 }
 
-inline v2f v3f_to_v2f(v3f v) {
-    v2f result;
+inline V2 v3_to_v2(V3 v) {
+    V2 result;
     result.x = v.x;
     result.y = v.y;
 
     return result;
 }
 
-inline v3f v2f_to_v3f(v2f v) {
-    v3f result;
+inline V3 v2_to_v3(V2 v) {
+    V3 result;
     result.x = v.x;
     result.y = v.y;
 
     return result;
 }
 
-inline f32 v3f_dot(v3f a, v3f b) {
+inline f32 v3_dot(V3 a, V3 b) {
     f32 result = 0;
     result = a.x * b.x + a.y * b.y + a.z * b.z;
     return result;
 }
 
-inline v3f operator+(v3f a, v3f b) {
-    v3f result;
+inline V3 operator+(V3 a, V3 b) {
+    V3 result;
     result.x = a.x + b.x;
     result.y = a.y + b.y;
     result.z = a.z + b.z;
@@ -285,13 +285,13 @@ inline v3f operator+(v3f a, v3f b) {
     return result;
 }
 
-inline v3f& operator+=(v3f& a, v3f b) {
+inline V3& operator+=(V3& a, V3 b) {
     a = a + b;
     return a;
 }
 
-inline v3f operator+(v3f a, r32 b) {
-    v3f result;
+inline V3 operator+(V3 a, r32 b) {
+    V3 result;
     result.x = a.x + b;
     result.y = a.y + b;
     result.z = a.z + b;
@@ -299,8 +299,8 @@ inline v3f operator+(v3f a, r32 b) {
     return result;
 }
 
-inline v3f operator-(v3f a, v3f b) {
-    v3f result;
+inline V3 operator-(V3 a, V3 b) {
+    V3 result;
     result.x = a.x - b.x;
     result.y = a.y - b.y;
     result.z = a.z - b.z;
@@ -308,13 +308,13 @@ inline v3f operator-(v3f a, v3f b) {
     return result;
 }
 
-inline v3f& operator-=(v3f& a, v3f b) {
+inline V3& operator-=(V3& a, V3 b) {
     a = a - b;
     return a;
 }
 
-inline v3f operator-(v3f a) {
-    v3f result;
+inline V3 operator-(V3 a) {
+    V3 result;
     result.x = -a.x;
     result.y = -a.y;
     result.z = -a.z;
@@ -322,8 +322,8 @@ inline v3f operator-(v3f a) {
     return result;
 }
 
-inline v3f operator-(v3f a, r32 b) {
-    v3f result;
+inline V3 operator-(V3 a, r32 b) {
+    V3 result;
     result.x = a.x - b;
     result.y = a.y - b;
     result.z = a.z - b;
@@ -331,8 +331,8 @@ inline v3f operator-(v3f a, r32 b) {
     return result;
 }
 
-inline v3f operator*(v3f a, v3f b) {
-    v3f result;
+inline V3 operator*(V3 a, V3 b) {
+    V3 result;
     result.x = a.x * b.x;
     result.y = a.y * b.y;
     result.z = a.z * b.z;
@@ -340,13 +340,13 @@ inline v3f operator*(v3f a, v3f b) {
     return result;
 }
 
-inline v3f& operator*=(v3f& a, v3f b) {
+inline V3& operator*=(V3& a, V3 b) {
     a = a * b;
     return a;
 }
 
-inline v3f operator*(v3f a, r32 b) {
-    v3f result;
+inline V3 operator*(V3 a, r32 b) {
+    V3 result;
     result.x = a.x * b;
     result.y = a.y * b;
     result.z = a.z * b;
@@ -354,8 +354,8 @@ inline v3f operator*(v3f a, r32 b) {
     return result;
 }
 
-inline v3f operator*(r32 b, v3f a) {
-    v3f result;
+inline V3 operator*(r32 b, V3 a) {
+    V3 result;
     result.x = a.x * b;
     result.y = a.y * b;
     result.z = a.z * b;
@@ -363,8 +363,8 @@ inline v3f operator*(r32 b, v3f a) {
     return result;
 }
 
-inline v3f operator/(v3f a, v3f b) {
-    v3f result;
+inline V3 operator/(V3 a, V3 b) {
+    V3 result;
     result.x = a.x / b.x;
     result.y = a.y / b.y;
     result.z = a.z / b.z;
@@ -372,13 +372,13 @@ inline v3f operator/(v3f a, v3f b) {
     return result;
 }
 
-inline v3f& operator/=(v3f& a, v3f b) {
+inline V3& operator/=(V3& a, V3 b) {
     a = a / b;
     return a;
 }
 
-inline v3f operator/(v3f a, r32 b) {
-    v3f result;
+inline V3 operator/(V3 a, r32 b) {
+    V3 result;
     result.x = a.x / b;
     result.y = a.y / b;
     result.z = a.z / b;
@@ -386,23 +386,23 @@ inline v3f operator/(v3f a, r32 b) {
     return result;
 }
 
-inline f32 v3f_length(v3f v) {
+inline f32 v3_length(V3 v) {
     f32 result;
     result = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
     return result;
 }
 
-inline v3f v3f_norm(v3f v) {
-    v3f result;
-    f32 length = v3f_length(v);
+inline V3 v3_norm(V3 v) {
+    V3 result;
+    f32 length = v3_length(v);
     result = v / length;
 
     return result;
 }
 
-inline v3f v3f_cross(v3f a, v3f b) {
-    v3f result;
+inline V3 v3_cross(V3 a, V3 b) {
+    V3 result;
 
     result.x = a.y * b.z - a.z * b.y;
     result.y = -(a.x * b.z) + a.z * b.x;
@@ -411,14 +411,14 @@ inline v3f v3f_cross(v3f a, v3f b) {
     return result;
 }
 
-inline v3f v3f_lerp(v3f a, v3f b, f32 alpha) {
-    v3f result;
+inline V3 v3_lerp(V3 a, V3 b, f32 alpha) {
+    V3 result;
     result = a + (b - a) * alpha;
     
     return result;
 }
 
-struct v4f {
+struct V4 {
     union {
         struct {
             f32 x;
@@ -427,14 +427,20 @@ struct v4f {
             f32 w;
         };
         struct {
-            v2f xy;
-            v2f zw;
+            f32 r;
+            f32 g;
+            f32 b;
+            f32 a;
+        };
+        struct {
+            V2 xy;
+            V2 zw;
         };
     };
 };
 
-inline v4f create_v4f(f32 x, f32 y, f32 z, f32 w) {
-    v4f result;
+inline V4 create_v4(f32 x, f32 y, f32 z, f32 w) {
+    V4 result;
     result.x = x;
     result.y = y;
     result.z = z;
@@ -443,8 +449,8 @@ inline v4f create_v4f(f32 x, f32 y, f32 z, f32 w) {
     return result;
 }
 
-inline v4f create_v4f(f32 n) {
-    v4f result;
+inline V4 create_v4(f32 n) {
+    V4 result;
     result.x = n;
     result.y = n;
     result.z = n;
@@ -453,13 +459,13 @@ inline v4f create_v4f(f32 n) {
     return result;
 }
 
-inline v4f create_v4f() {
-    v4f result = {};
+inline V4 create_v4() {
+    V4 result = {};
     return result;
 }
 
-inline v4f v3f_to_v4f(v3f v) {
-    v4f result;
+inline V4 v3_to_v4(V3 v) {
+    V4 result;
     result.x = v.x;
     result.y = v.y;
     result.z = v.z;
@@ -468,8 +474,8 @@ inline v4f v3f_to_v4f(v3f v) {
     return result;
 }
 
-inline v3f v4f_to_v3f(v4f v) {
-    v3f result;
+inline V3 v4_to_v3(V4 v) {
+    V3 result;
     result.x = v.x;
     result.y = v.y;
     result.z = v.z;
@@ -477,16 +483,16 @@ inline v3f v4f_to_v3f(v4f v) {
     return result;
 }
 
-inline v2f v4f_to_v2f(v4f v) {
-    v2f result;
+inline V2 v4_to_v2(V4 v) {
+    V2 result;
     result.x = v.x;
     result.y = v.y;
 
     return result;
 }
 
-inline v4f operator+(v4f a, v4f b) {
-    v4f result;
+inline V4 operator+(V4 a, V4 b) {
+    V4 result;
     result.x = a.x + b.x;
     result.y = a.y + b.y;
     result.z = a.z + b.z;
@@ -495,13 +501,13 @@ inline v4f operator+(v4f a, v4f b) {
     return result;
 }
 
-inline v4f& operator+=(v4f& a, v4f b) {
+inline V4& operator+=(V4& a, V4 b) {
     a = a + b;
     return a;
 }
 
-inline v4f operator+(v4f a, r32 b) {
-    v4f result;
+inline V4 operator+(V4 a, r32 b) {
+    V4 result;
     result.x = a.x + b;
     result.y = a.y + b;
     result.z = a.z + b;
@@ -510,8 +516,8 @@ inline v4f operator+(v4f a, r32 b) {
     return result;
 }
 
-inline v4f operator-(v4f a, v4f b) {
-    v4f result;
+inline V4 operator-(V4 a, V4 b) {
+    V4 result;
     result.x = a.x - b.x;
     result.y = a.y - b.y;
     result.z = a.z - b.z;
@@ -520,13 +526,13 @@ inline v4f operator-(v4f a, v4f b) {
     return result;
 }
 
-inline v4f& operator-=(v4f& a, v4f b) {
+inline V4& operator-=(V4& a, V4 b) {
     a = a - b;
     return a;
 }
 
-inline v4f operator-(v4f a) {
-    v4f result;
+inline V4 operator-(V4 a) {
+    V4 result;
     result.x = -a.x;
     result.y = -a.y;
     result.z = -a.z;
@@ -535,8 +541,8 @@ inline v4f operator-(v4f a) {
     return result;
 }
 
-inline v4f operator-(v4f a, r32 b) {
-    v4f result;
+inline V4 operator-(V4 a, r32 b) {
+    V4 result;
     result.x = a.x - b;
     result.y = a.y - b;
     result.z = a.z - b;
@@ -545,8 +551,8 @@ inline v4f operator-(v4f a, r32 b) {
     return result;
 }
 
-inline v4f operator*(v4f a, v4f b) {
-    v4f result;
+inline V4 operator*(V4 a, V4 b) {
+    V4 result;
     result.x = a.x * b.x;
     result.y = a.y * b.y;
     result.z = a.z * b.z;
@@ -555,13 +561,13 @@ inline v4f operator*(v4f a, v4f b) {
     return result;
 }
 
-inline v4f& operator*=(v4f& a, v4f b) {
+inline V4& operator*=(V4& a, V4 b) {
     a = a * b;
     return a;
 }
 
-inline v4f operator*(v4f a, r32 b) {
-    v4f result;
+inline V4 operator*(V4 a, r32 b) {
+    V4 result;
     result.x = a.x * b;
     result.y = a.y * b;
     result.z = a.z * b;
@@ -570,13 +576,13 @@ inline v4f operator*(v4f a, r32 b) {
     return result;
 }
 
-inline v4f operator*(r32 b, v4f a) {
-    v4f result = a * b;
+inline V4 operator*(r32 b, V4 a) {
+    V4 result = a * b;
     return result;
 }
 
-inline v4f operator/(v4f a, v4f b) {
-    v4f result;
+inline V4 operator/(V4 a, V4 b) {
+    V4 result;
     result.x = a.x / b.x;
     result.y = a.y / b.y;
     result.z = a.z / b.z;
@@ -585,13 +591,13 @@ inline v4f operator/(v4f a, v4f b) {
     return result;
 }
 
-inline v4f& operator/=(v4f& a, v4f b) {
+inline V4& operator/=(V4& a, V4 b) {
     a = a / b;
     return a;
 }
 
-inline v4f operator/(v4f a, r32 b) {
-    v4f result;
+inline V4 operator/(V4 a, r32 b) {
+    V4 result;
     result.x = a.x / b;
     result.y = a.y / b;
     result.z = a.z / b;
@@ -601,16 +607,16 @@ inline v4f operator/(v4f a, r32 b) {
 }
 
 // note: checks if it's to the right
-inline f32 edge_function(v2f a, v2f b, v2f p) {
+inline f32 edge_function(V2 a, V2 b, V2 p) {
     f32 result = 0;
     result = (p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x);
 
     return result;
 }
 
-inline b32 is_top_left(v2f start, v2f end) {
+inline b32 is_top_left(V2 start, V2 end) {
     b32 result = 0;
-    v2f edge = end - start;
+    V2 edge = end - start;
     b32 is_top_edge = edge.y == 0.0f;
 
     // normally i'd think it should be greater than (positive slope), but i think it's this way due
@@ -621,62 +627,62 @@ inline b32 is_top_left(v2f start, v2f end) {
     return result;
 }
 
-inline v4f v4f_lerp(v4f a, v4f b, f32 alpha) {
-    v4f result;
+inline V4 v4_lerp(V4 a, V4 b, f32 alpha) {
+    V4 result;
     result = a + (b - a) * alpha;
     
     return result;
 }
 
-struct m2f {
+struct M2 {
     union {
         f32 e[2][2];
         f32 arr[4];
         struct {
-            v2f x;
-            v2f y;
+            V2 x;
+            V2 y;
         };
         struct {
-            v2f col0;
-            v2f col1;
+            V2 col0;
+            V2 col1;
         };
     };
 };
 
-inline m2f m2f_identity() {
-    m2f result = {};
+inline M2 m2_identity() {
+    M2 result = {};
     result.e[0][0] = 1.0f;
     result.e[1][1] = 1.0f;
 
     return result;
 }
 
-inline f32 m2f_determinant(m2f mat) {
+inline f32 m2_determinant(M2 mat) {
     f32 result = 0.0f;
     result = mat.e[0][0] * mat.e[1][1] - mat.e[0][1] * mat.e[1][0];
 
     return result;
 }
 
-struct m3f {
+struct M3 {
     union {
         f32 e[3][3];
         f32 arr[9];
         struct {
-            v3f x;
-            v3f y;
-            v3f z;
+            V3 x;
+            V3 y;
+            V3 z;
         };
         struct {
-            v3f col0;
-            v3f col1;
-            v3f col2;
+            V3 col0;
+            V3 col1;
+            V3 col2;
         };
     };
 };
 
-inline m3f m3f_identity() {
-    m3f result = {};
+inline M3 m3_identity() {
+    M3 result = {};
     result.e[0][0] = 1.0f;
     result.e[1][1] = 1.0f;
     result.e[2][2] = 1.0f;
@@ -684,16 +690,16 @@ inline m3f m3f_identity() {
     return result;
 }
 
-inline m3f operator*(m3f a, m3f b) {
-    m3f result = {};
+inline M3 operator*(M3 a, M3 b) {
+    M3 result = {};
 
-    v3f acol0 = a.col0;
-    v3f acol1 = a.col1;
-    v3f acol2 = a.col2;
+    V3 acol0 = a.col0;
+    V3 acol1 = a.col1;
+    V3 acol2 = a.col2;
 
-    v3f bcol0 = b.col0;
-    v3f bcol1 = b.col1;
-    v3f bcol2 = b.col2;
+    V3 bcol0 = b.col0;
+    V3 bcol1 = b.col1;
+    V3 bcol2 = b.col2;
 
     result.col0 = bcol0.x * acol0 + bcol0.y * acol1 + bcol0.z * acol2;
     result.col1 = bcol1.x * acol0 + bcol1.y * acol1 + bcol1.z * acol2;
@@ -702,21 +708,21 @@ inline m3f operator*(m3f a, m3f b) {
     return result;
 }
 
-inline v3f operator*(v3f v, m3f mat) {
-    v3f result;
+inline V3 operator*(V3 v, M3 mat) {
+    V3 result;
     result = v.x * mat.col0 + v.y * mat.col1 + v.z * mat.col2;
 
     return result;
 }
 
-inline v3f operator*(m3f mat, v3f v) {
-    v3f result;
+inline V3 operator*(M3 mat, V3 v) {
+    V3 result;
     result = v.x * mat.col0 + v.y * mat.col1 + v.z * mat.col2;
 
     return result;
 }
 
-inline f32 m3f_determinant(m3f mat) {
+inline f32 m3_determinant(M3 mat) {
     f32 result = 0.0f;
 
     u32 base_row_index = 0;
@@ -726,7 +732,7 @@ inline f32 m3f_determinant(m3f mat) {
 
     // mat index is for the 3 2x2 matrices that we form from the original mat.
     for (u32 moving_column_index = 0; moving_column_index < 3; ++moving_column_index, scalar_negative_factor *= -1) {
-        m2f selected_mat;
+        M2 selected_mat;
 
         // these indices are to choose the appropiate values, don't use them to index into the new matrix.
         u32 selected_row_index = 0;
@@ -747,15 +753,15 @@ inline f32 m3f_determinant(m3f mat) {
             }
         }
 
-        f32 selected_mat_determinant = m2f_determinant(selected_mat);
+        f32 selected_mat_determinant = m2_determinant(selected_mat);
         result += scalar * selected_mat_determinant;
     }
 
     return result;
 }
 
-inline m3f m3f_rotate_x(f32 deg) {
-    m3f result = m3f_identity();
+inline M3 m3_rotate_x(f32 deg) {
+    M3 result = m3_identity();
 
     f32 angle = deg_to_rad(deg);
 
@@ -771,8 +777,8 @@ inline m3f m3f_rotate_x(f32 deg) {
     return result;
 }
 
-inline m3f m3f_rotate_y(f32 deg) {
-    m3f result = m3f_identity();
+inline M3 m3_rotate_y(f32 deg) {
+    M3 result = m3_identity();
 
     f32 angle = deg_to_rad(deg);
 
@@ -788,8 +794,8 @@ inline m3f m3f_rotate_y(f32 deg) {
     return result;
 }
 
-inline m3f m3f_rotate_z(f32 deg) {
-    m3f result = m3f_identity();
+inline M3 m3_rotate_z(f32 deg) {
+    M3 result = m3_identity();
 
     f32 angle = deg_to_rad(deg);
 
@@ -805,12 +811,12 @@ inline m3f m3f_rotate_z(f32 deg) {
     return result;
 }
 
-inline m3f m3f_rotate(v3f rot) {
-    m3f result = m3f_identity();
+inline M3 m3_rotate(V3 rot) {
+    M3 result = m3_identity();
 
-    m3f x = m3f_rotate_x(rot.x);
-    m3f y = m3f_rotate_y(rot.y);
-    m3f z = m3f_rotate_z(rot.z);
+    M3 x = m3_rotate_x(rot.x);
+    M3 y = m3_rotate_y(rot.y);
+    M3 z = m3_rotate_z(rot.z);
 
     // note: yaw pitch then roll, this is supposedly standard for fps games, rotation order matters, quaternions
     // supposedly fix this, so i'll look into them probably once i want third person view
@@ -819,15 +825,15 @@ inline m3f m3f_rotate(v3f rot) {
     return result;
 }
 
-struct m4f {
+struct M4 {
     union {
         // stored column major - e[column][row]
         f32 e[4][4];
         struct {
-            v4f col0;
-            v4f col1;
-            v4f col2;
-            v4f col3;
+            V4 col0;
+            V4 col1;
+            V4 col2;
+            V4 col3;
         };
         struct {
             f32 m00, m01, m02, m03,
@@ -838,8 +844,8 @@ struct m4f {
     };
 };
 
-inline v3f v3f_lookat(v3f rotation) {
-    v3f result;
+inline V3 v3_lookat(V3 rotation) {
+    V3 result;
     f32 pitch = deg_to_rad(rotation.pitch);
     f32 yaw = deg_to_rad(rotation.yaw);
     f32 roll = deg_to_rad(rotation.roll);
@@ -851,30 +857,30 @@ inline v3f v3f_lookat(v3f rotation) {
     return result;
 }
 
-inline v4f operator*(v4f v, m4f mat) {
-    v4f result;
+inline V4 operator*(V4 v, M4 mat) {
+    V4 result;
     result = v.x * mat.col0 + v.y * mat.col1 + v.z * mat.col2 + v.w * mat.col3;
 
     return result;
 }
 
-inline v4f operator*(m4f mat, v4f v) {
-    v4f result = v * mat;
+inline V4 operator*(M4 mat, V4 v) {
+    V4 result = v * mat;
     return result;
 }
 
-inline m4f operator*(m4f a, m4f b) {
-    m4f result = {};
+inline M4 operator*(M4 a, M4 b) {
+    M4 result = {};
 
-    v4f acol0 = a.col0;
-    v4f acol1 = a.col1;
-    v4f acol2 = a.col2;
-    v4f acol3 = a.col3;
+    V4 acol0 = a.col0;
+    V4 acol1 = a.col1;
+    V4 acol2 = a.col2;
+    V4 acol3 = a.col3;
 
-    v4f bcol0 = b.col0;
-    v4f bcol1 = b.col1;
-    v4f bcol2 = b.col2;
-    v4f bcol3 = b.col3;
+    V4 bcol0 = b.col0;
+    V4 bcol1 = b.col1;
+    V4 bcol2 = b.col2;
+    V4 bcol3 = b.col3;
 
     result.col0 = bcol0.x * acol0 + bcol0.y * acol1 + bcol0.z * acol2 + bcol0.w * acol3;
     result.col1 = bcol1.x * acol0 + bcol1.y * acol1 + bcol1.z * acol2 + bcol1.w * acol3;
@@ -884,8 +890,8 @@ inline m4f operator*(m4f a, m4f b) {
     return result;
 }
 
-inline m4f m4f_identity() {
-    m4f result = {};
+inline M4 m4_identity() {
+    M4 result = {};
     result.e[0][0] = 1.0f;
     result.e[1][1] = 1.0f;
     result.e[2][2] = 1.0f;
@@ -895,12 +901,12 @@ inline m4f m4f_identity() {
 }
 
 // this whole function is wrong i think? maybe they're swapping each other into being correct idk lol
-inline m4f create_m4f(f32 m00, f32 m01, f32 m02, f32 m03,
+inline M4 create_m4(f32 m00, f32 m01, f32 m02, f32 m03,
                       f32 m10, f32 m11, f32 m12, f32 m13,
                       f32 m20, f32 m21, f32 m22, f32 m23,
                       f32 m30, f32 m31, f32 m32, f32 m33)
 {
-    m4f result;
+    M4 result;
     result.e[0][0] = m00; result.e[1][0] = m10; result.e[2][0] = m20; result.e[3][0] = m30;
     result.e[0][1] = m01; result.e[1][1] = m11; result.e[2][1] = m21; result.e[3][1] = m31;
     result.e[0][2] = m02; result.e[1][2] = m12; result.e[2][2] = m22; result.e[3][2] = m32;
@@ -909,7 +915,7 @@ inline m4f create_m4f(f32 m00, f32 m01, f32 m02, f32 m03,
     return result;
 }
 
-inline f32 m4f_determinant(m4f mat) {
+inline f32 m4_determinant(M4 mat) {
     f32 result = 0.0f;
 
     u32 base_row_index = 0;
@@ -919,7 +925,7 @@ inline f32 m4f_determinant(m4f mat) {
 
     // mat index is for the 4 3x3 matrices that we form from the original mat.
     for (u32 moving_column_index = 0; moving_column_index < 4; ++moving_column_index, scalar_negative_factor *= -1) {
-        m3f selected_mat;
+        M3 selected_mat;
 
         // these indices are to select the appropiate values, don't use them to index into the new matrix.
         u32 selected_row_index = 0;
@@ -940,15 +946,15 @@ inline f32 m4f_determinant(m4f mat) {
             }
         }
 
-        f32 selected_mat_determinant = m3f_determinant(selected_mat);
+        f32 selected_mat_determinant = m3_determinant(selected_mat);
         result += scalar * selected_mat_determinant;
     }
 
     return result;
 }
 
-inline m4f m4f_transpose(m4f mat) {
-    m4f result;
+inline M4 m4_transpose(M4 mat) {
+    M4 result;
     for (u32 row = 0; row < 4; ++row) {
         for (u32 column = 0; column < 4; ++column) {
             result.e[column][row] = mat.e[row][column];
@@ -958,15 +964,15 @@ inline m4f m4f_transpose(m4f mat) {
     return result;
 }
 
-inline f32 m4f_row_dot(m4f mat, u32 row, f32 n) {
+inline f32 m4_row_dot(M4 mat, u32 row, f32 n) {
     f32 result = 0.0f;
     result = (mat.e[0][row] * n) + (mat.e[1][row] * n) + (mat.e[2][row] * n) + (mat.e[3][row] * n);
 
     return result;
 }
 
-inline m4f m4f_scale(v3f scale) {
-    m4f result = m4f_identity();
+inline M4 m4_scale(V3 scale) {
+    M4 result = m4_identity();
     result.e[0][0] = scale.x;
     result.e[1][1] = scale.y;
     result.e[2][2] = scale.z;
@@ -974,8 +980,8 @@ inline m4f m4f_scale(v3f scale) {
     return result;
 }
 
-inline m4f m4f_rotate_x(f32 deg) {
-    m4f result = m4f_identity();
+inline M4 m4_rotate_x(f32 deg) {
+    M4 result = m4_identity();
 
     f32 angle = deg_to_rad(deg);
 
@@ -991,8 +997,8 @@ inline m4f m4f_rotate_x(f32 deg) {
     return result;
 }
 
-inline m4f m4f_rotate_y(f32 deg) {
-    m4f result = m4f_identity();
+inline M4 m4_rotate_y(f32 deg) {
+    M4 result = m4_identity();
 
     f32 angle = deg_to_rad(deg);
 
@@ -1008,8 +1014,8 @@ inline m4f m4f_rotate_y(f32 deg) {
     return result;
 }
 
-inline m4f m4f_rotate_z(f32 deg) {
-    m4f result = m4f_identity();
+inline M4 m4_rotate_z(f32 deg) {
+    M4 result = m4_identity();
 
     f32 angle = deg_to_rad(deg);
 
@@ -1025,12 +1031,12 @@ inline m4f m4f_rotate_z(f32 deg) {
     return result;
 }
 
-inline m4f m4f_rotate(v3f rotation) {
-    m4f result = m4f_identity();
+inline M4 m4_rotate(V3 rotation) {
+    M4 result = m4_identity();
 
-    m4f x = m4f_rotate_x(rotation.x);
-    m4f y = m4f_rotate_y(rotation.y);
-    m4f z = m4f_rotate_z(rotation.z);
+    M4 x = m4_rotate_x(rotation.x);
+    M4 y = m4_rotate_y(rotation.y);
+    M4 z = m4_rotate_z(rotation.z);
 
     // note: yaw pitch then roll, this is supposedly standard for fps games, rotation order matters, quaternions
     // supposedly fix this, so i'll look into them probably once i want third person view
@@ -1039,8 +1045,8 @@ inline m4f m4f_rotate(v3f rotation) {
     return result;
 }
 
-inline m4f m4f_translate(v3f translation) {
-    m4f result = m4f_identity();
+inline M4 m4_translate(V3 translation) {
+    M4 result = m4_identity();
     result.e[3][0] = translation.x;
     result.e[3][1] = translation.y;
     result.e[3][2] = translation.z;
@@ -1048,8 +1054,8 @@ inline m4f m4f_translate(v3f translation) {
     return result;
 }
 
-inline m4f m4f_inverse_translate(v3f translation) {
-    m4f result = m4f_identity();
+inline M4 m4_inverse_translate(V3 translation) {
+    M4 result = m4_identity();
     result.e[3][0] = -translation.x;
     result.e[3][1] = -translation.y;
     result.e[3][2] = -translation.z;
@@ -1057,8 +1063,8 @@ inline m4f m4f_inverse_translate(v3f translation) {
     return result;
 }
 
-inline m4f m4f_inverse_affine(m4f mat) {
-    m4f result = m4f_identity();
+inline M4 m4_inverse_affine(M4 mat) {
+    M4 result = m4_identity();
     return result;
 }
 
@@ -1075,17 +1081,17 @@ so it's important that when making the view matrix, you multiply with the invers
 I think the dot products represent the translation? I'm not sure, I need to look into this.
 */
 
-inline m4f m4f_lookat(v3f from, v3f to, v3f up) {
-    m4f result = m4f_identity();
-    v3f z = v3f_norm(to - from);
-    v3f x = v3f_norm(v3f_cross(up, z));
-    v3f y = v3f_norm(v3f_cross(z, x));
+inline M4 m4_lookat(V3 from, V3 to, V3 up) {
+    M4 result = m4_identity();
+    V3 z = v3_norm(to - from);
+    V3 x = v3_norm(v3_cross(up, z));
+    V3 y = v3_norm(v3_cross(z, x));
 
-    f32 xdot = -v3f_dot(from, x);
-    f32 ydot = -v3f_dot(from, y);
-    f32 zdot = -v3f_dot(from, z);
+    f32 xdot = -v3_dot(from, x);
+    f32 ydot = -v3_dot(from, y);
+    f32 zdot = -v3_dot(from, z);
 
-    result = create_m4f(
+    result = create_m4(
                         x.x, x.y, x.z, xdot,
                         y.x, y.y, y.z, ydot,
                         z.x, z.y, z.z, zdot,
@@ -1095,8 +1101,8 @@ inline m4f m4f_lookat(v3f from, v3f to, v3f up) {
     return result;
 }
 
-inline m4f m4f_perspective(f32 width, f32 height, f32 fov, f32 near_plane, f32 far_plane) {
-    m4f result = m4f_identity();
+inline M4 m4_perspective(f32 width, f32 height, f32 fov, f32 near_plane, f32 far_plane) {
+    M4 result = m4_identity();
     f32 angle = deg_to_rad(fov);
     f32 aspect_ratio = width / height;
     f32 scale = 1.0f / tan(angle * 0.5f);

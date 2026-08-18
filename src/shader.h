@@ -1,60 +1,70 @@
 #pragma once
 
 #include "engine_math.h"
+#include "render.h"
 #include "memory.h"
 #include "util.h"
 
 enum Shader_Value_Type : u32 {
     Shader_Value_Type_f32,
-    Shader_Value_Type_v2f,
-    Shader_Value_Type_v3f,
-    Shader_Value_Type_v4f,
-    Shader_Value_Type_m3f,
-    Shader_Value_Type_m4f,
+    Shader_Value_Type_V2,
+    Shader_Value_Type_V3,
+    Shader_Value_Type_V4,
+    Shader_Value_Type_M3,
+    Shader_Value_Type_M4,
 };
 
 struct Shader_Value {
     Shader_Value_Type type;
     union {
         f32 f32;
-        v2f v2f;
-        v3f v3f;
-        v4f v4f;
-        m3f m3f;
-        m4f m4f;
+        V2 V2;
+        V3 V3;
+        V4 V4;
+        M3 M3;
+        M4 M4;
     };
 };
 
 struct Shader_Value_Array {
     u64 count;
-    Shader_Value *uniforms;
+    Shader_Value *values;
 };
 
 struct Vertex_Attributes {
-    v3f pos; 
-    v3f normal;
-    v2f uv;
-    v3f color;
+    V3 pos; 
+    V3 normal;
+    V2 uv;
+    V3 color;
 };
 
 struct Vertex_Attributes_Array {
-    v3f *positions; 
-    v3f *normals;
-    v2f *texture_coordinates;
-    v3f *colors;
-};
-
-typedef Vertex_Shader_Function (*Vertex_Shader_Result)(Shader_Value_Array, Vertex_Attributes_Array);
-struct Vertex_Shader {
-    Vertex_Shader_Function function;
+    V3 *positions; 
+    V3 *normals;
+    V2 *texture_coordinates;
+    V3 *colors;
 };
 
 struct Vertex_Shader_Result {
     Shader_Value_Array *outputs;
-    v4f position; // ideally clip space position
+    V4 position; // ideally clip space position
 };
 
-typedef Fragment_Shader_Function (*Colorf)(Vertex_Shader_Result);
+#define VERTEX_SHADER_PARAMETERS(Shader_Value_Array, Vertex_Attributes_Array, u64)
+typedef Vertex_Shader_Result (*Vertex_Shader_Function)(VERTEX_SHADER_PARAMETERS);
+struct Vertex_Shader {
+    Vertex_Shader_Function function;
+};
+
+
+#define get_uniform_f32(index) uniforms.values[index].f32
+#define get_uniform_v2(index) uniforms.values[index].V2
+#define get_uniform_v3(index) uniforms.values[index].V3
+#define get_uniform_v4(index) uniforms.values[index].V4
+#define get_uniform_m3(index) uniforms.values[index].M3
+#define get_uniform_m4(index) uniforms.values[index].M4
+
+typedef Colorf (*Fragment_Shader_Function)(Vertex_Shader_Result);
 struct Fragment_Shader {
     Fragment_Shader_Function function;
 };
@@ -70,10 +80,10 @@ struct Shader_Pipeline {
 Shader_Value_Array init_shader_uniforms(Arena *arena);
 void push_shader_uniform(Shader_Value_Array *uniforms, Arena *arena, Shader_Value value);
 
-void add_position_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, v3f *positions);
-void add_normal_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, v3f *normals);
-void add_texture_coordinate_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, v3f *texture_coordinates);
-void add_color_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, v3f *colors);
+void add_position_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, V3 *positions);
+void add_normal_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, V3 *normals);
+void add_texture_coordinate_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, V2 *texture_coordinates);
+void add_color_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, V3 *colors);
 
 Shader_Pipeline create_shader_pipeline(Shader_Value_Array uniforms, Vertex_Attributes_Array attributes_array, Vertex_Shader vertex_shader, Fragment_Shader fragment_shader);
 

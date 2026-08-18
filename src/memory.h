@@ -12,7 +12,7 @@ struct Arena {
     u8 *data;   
 };
 
-Arena arena_alloc(u64 size);
+Arena arena_init(u64 size);
 void arena_touch_pages(Arena *arena);
 u64 get_os_page_size();
 u8 *arena_push(Arena *arena, u64 size);

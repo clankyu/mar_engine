@@ -20,9 +20,9 @@ struct Frame_Buffer {
 };
 
 struct Camera {
-    v3f pos;
-    v3f rotation;
-    v3f up;
+    V3 pos;
+    V3 rotation;
+    V3 up;
     f32 fov;
     f32 sensitivity;
     f32 speed; // m/s
@@ -62,9 +62,9 @@ struct Engine {
     } window;
     
     struct Mouse {
-        v2f pos;
-        v2f old_pos;
-        v2f delta_pos;
+        V2 pos;
+        V2 old_pos;
+        V2 delta_pos;
         b32 inside_window;
     } mouse;
     
@@ -118,8 +118,8 @@ inline void update_previous_time() {
     engine.previous_time = engine.current_time;
 }
 
-inline v2f get_delta_mouse_pos() {
-    v2f result;
+inline V2 get_delta_mouse_pos() {
+    V2 result;
     result = engine.mouse.delta_pos;
 
     return result;
@@ -127,6 +127,6 @@ inline v2f get_delta_mouse_pos() {
 
 void update_camera(Camera *camera);
 
-void move_camera(Camera *camera, v3f pos, v3f at, v3f up);
+void move_camera(Camera *camera, V3 pos, V3 at, V3 up);
 void rotate_camera_by_mouse(Camera *camera);
-void rotate_camera(Camera *camera, v3f rotation);
+void rotate_camera(Camera *camera, V3 rotation);

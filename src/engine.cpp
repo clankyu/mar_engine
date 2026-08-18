@@ -47,8 +47,8 @@ s32 init_engine() {
 Camera camera_init() {
     Camera result = {};
     result.pos = {};
-    result.rotation = create_v3f(0.0f, 0.0f, 0.0f);
-    result.up = create_v3f(0.0f, 1.0f, 0.0f);
+    result.rotation = create_v3(0.0f, 0.0f, 0.0f);
+    result.up = create_v3(0.0f, 1.0f, 0.0f);
     result.near_plane = 0.5f;
     result.far_plane = 1000.0f;
     result.fov = DEFAULT_FOV;
@@ -103,7 +103,7 @@ void poll_sdl_events() {
             f32 yrel = event.motion.yrel;
             yrel *= -1;
 
-            engine.mouse.delta_pos = create_v2f(xrel, yrel);
+            engine.mouse.delta_pos = create_v2(xrel, yrel);
         }
     }
 }
@@ -129,12 +129,12 @@ void present_screen() {
 // it should probably be booleans or something that simply tell you if it moved,
 // maybe it's a good idea to have a separate function to move the camera,
 // (or maybe just here it's better, calculate translation from velocity outside)
-void move_camera(Camera *camera, v3f translation, v3f at, v3f up) {
-    v3f final_translation = {};
-    v3f forward = v3f_norm(at);
+void move_camera(Camera *camera, V3 translation, V3 at, V3 up) {
+    V3 final_translation = {};
+    V3 forward = v3_norm(at);
     
     // this is so x+ is to the right
-    v3f right = v3f_norm(v3f_cross(up, at));
+    V3 right = v3_norm(v3_cross(up, at));
 
     // multiplying probably isn't good
     f32 x_direction = translation.x < 0.0f ? -1.0f : 1.0f * (translation.x != 0);
@@ -148,7 +148,7 @@ void move_camera(Camera *camera, v3f translation, v3f at, v3f up) {
     camera->pos += final_translation;
 }
 
-void rotate_camera(Camera *camera, v3f delta_rotation) {
+void rotate_camera(Camera *camera, V3 delta_rotation) {
     f32 sensitivity = camera->sensitivity;
 
     camera->rotation += delta_rotation * sensitivity;
@@ -160,7 +160,7 @@ void update_camera(Camera *camera) {
     f32 dt = engine.delta_time;
     
     // Camera rotation.
-    v3f delta_camera_rotation = {};
+    V3 delta_camera_rotation = {};
     delta_camera_rotation.pitch += engine.mouse.delta_pos.y;
     delta_camera_rotation.yaw += engine.mouse.delta_pos.x;
 
@@ -186,7 +186,7 @@ void update_camera(Camera *camera) {
         engine.camera.pos = {};
     }
 
-    v3f delta_camera_pos = {};
+    V3 delta_camera_pos = {};
     f32 speed = engine.camera.speed;
     f32 speed_boost = 1.0f;
     if (keyboard_state[SDL_SCANCODE_W]) {
@@ -213,8 +213,8 @@ void update_camera(Camera *camera) {
     
     delta_camera_pos = delta_camera_pos * speed * speed_boost * dt;
 
-    v3f at = v3f_norm(v3f_lookat(engine.camera.rotation));
-    v3f up = v3f_norm(create_v3f(0.0f, 1.0f, 0.0f));
+    V3 at = v3_norm(v3_lookat(engine.camera.rotation));
+    V3 up = v3_norm(create_v3(0.0f, 1.0f, 0.0f));
 
     rotate_camera(&engine.camera, delta_camera_rotation);
     move_camera(&engine.camera, delta_camera_pos, at, up);

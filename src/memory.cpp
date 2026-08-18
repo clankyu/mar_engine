@@ -5,7 +5,7 @@
 #include "memory.h"
 #include "util.h"
 
-Arena arena_alloc(u64 size) {
+Arena arena_init(u64 size) {
     Arena result = {};
     result.data = (u8*) VirtualAlloc2(NULL, NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE, NULL, 0); // memory already set to zero and page aligned
     result.size = size;

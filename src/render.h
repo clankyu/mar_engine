@@ -134,35 +134,7 @@ inline Color8 color8_lerp(Color8 a, Color8 b, f32 alpha) {
     return result;
 }
 
-union Colorf {
-    struct {
-        f32 r;
-        f32 g;
-        f32 b;
-        f32 a;
-    };
-    v4f vec;
-};
-
-inline Colorf colorf(f32 r, f32 g, f32 b, f32 a) {
-    Colorf result;
-    result.r = r;
-    result.g = g;
-    result.b = b;
-    result.a = a;
-
-    return result;
-}
-
-inline Colorf colorf(f32 val) {
-    Colorf result;
-    result.r = val;
-    result.g = val;
-    result.b = val;
-    result.a = val;
-
-    return result;
-}
+typedef V4 Colorf;
 
 inline Colorf color8_to_colorf(Color8 color) {
     Colorf result;
@@ -172,44 +144,6 @@ inline Colorf color8_to_colorf(Color8 color) {
     result.a = (f32) color.a / 255.0f;
 
     return result;
-}
-
-inline Colorf operator*(Colorf color, r32 n) {
-    Colorf result;
-    result.r = color.r * n;
-    result.g = color.g * n;
-    result.b = color.b * n;
-    result.a = color.a * n;
-
-    return result;
-}
-
-inline Colorf& operator*=(Colorf& color, r32 n) {
-    color.r *= n;
-    color.g *= n;
-    color.b *= n;
-    color.a *= n;
-
-    return color;
-}
-
-inline Colorf operator/(Colorf color, r32 n) {
-    Colorf result;
-    result.r = color.r / n;
-    result.g = color.g / n;
-    result.b = color.b / n;
-    result.a = color.a / n;
-
-    return result;
-}
-
-inline Colorf& operator/=(Colorf& color, r32 n) {
-    color.r /= n;
-    color.g /= n;
-    color.b /= n;
-    color.a /= n;
-
-    return color;
 }
 
 inline u32 color_bytes_to_u32(u8 r, u8 g, u8 b, u8 a) {
@@ -223,16 +157,16 @@ inline u32 color_bytes_to_u32(u8 r, u8 g, u8 b, u8 a) {
 }
 
 struct Triangle {
-    v3f v0;
-    v3f v1;
-    v3f v2;
+    V3 v0;
+    V3 v1;
+    V3 v2;
     Color8 c0;
     Color8 c1;
     Color8 c2;
 };
 
 struct Vertex4d {
-    v4f pos;
+    V4 pos;
     Color8 color;
 };
 
@@ -246,9 +180,9 @@ struct Clip_Triangle {
 
 inline Clip_Triangle triangle_to_clip(Triangle t) {
     Clip_Triangle result;
-    result.v0.pos = v3f_to_v4f(t.v0);
-    result.v1.pos = v3f_to_v4f(t.v1);
-    result.v2.pos = v3f_to_v4f(t.v2);
+    result.v0.pos = v3_to_v4(t.v0);
+    result.v1.pos = v3_to_v4(t.v1);
+    result.v2.pos = v3_to_v4(t.v2);
     result.v0.color = t.c0;
     result.v1.color = t.c1;
     result.v2.color = t.c2;
@@ -257,25 +191,25 @@ inline Clip_Triangle triangle_to_clip(Triangle t) {
 }
 
 struct Render_Entity {
-    v3f pos;
-    v3f scale;
-    v3f rotation;
+    V3 pos;
+    V3 scale;
+    V3 rotation;
     Triangle *triangles;
     u32 triangle_count;
 };
 
 Render_Entity create_empty_render_entity();
 Render_Entity create_triangle_render_entity(Triangle triangle);
-void draw_render_entity(Frame_Buffer *framebuffer, Render_Entity e);
+void draw_render_entity(Frame_Buffer *frame_buffer, Render_Entity e);
 
-Triangle create_triangle(v3f v0, v3f v1, v3f v2, Color8 c0, Color8 c1, Color8 c2);
-Clip_Triangle create_clip_triangle_mvp(Triangle triangle, m4f mvp);
-void draw_triangle(Frame_Buffer *framebuffer, Clip_Triangle clip_triangle);
+Triangle create_triangle(V3 v0, V3 v1, V3 v2, Color8 c0, Color8 c1, Color8 c2);
+Clip_Triangle create_clip_triangle_mvp(Triangle triangle, M4 mvp);
+void draw_triangle(Frame_Buffer *frame_buffer, Clip_Triangle clip_triangle);
 
 struct Raster_Vertex {
     union {
-        v2f pos;
-        v2f xy;
+        V2 pos;
+        V2 xy;
         struct {
             f32 x, y;
         };
@@ -285,12 +219,12 @@ struct Raster_Vertex {
     f32 one_over_w;
 };
 
-Raster_Vertex ndc_to_raster(v4f ndc_vertex, f32 w, Colorf color, f32 width, f32 height);
+Raster_Vertex ndc_to_raster(V4 ndc_vertex, f32 w, Colorf color, f32 width, f32 height);
 void order_vertices_clockwise(Raster_Vertex *v0, Raster_Vertex *v1, Raster_Vertex *v2);
 
 void put_pixel(Frame_Buffer *framebuffer, s32 x, s32 y, u32 color);
 
-void m4f_print(m4f mat);
+void m4_print(M4 mat);
 
 b32 triangle_in_view_frustum(Clip_Triangle triangle);
 void clip_and_draw_triangle(Frame_Buffer *frame_buffer, Clip_Triangle triangle);
