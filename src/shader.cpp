@@ -16,19 +16,7 @@ void push_shader_uniform(Shader_Pipeline *pipeline, Arena *arena, Shader_Value v
     ++pipeline->uniforms.count;
 }
 
-void add_position_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, V3 *positions) {
-    vertex_attributes_array->positions = positions;
-}
-void add_normal_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, V3 *normals) {
-    vertex_attributes_array->normals = normals;
-}
-void add_texture_coordinate_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, V2 *texture_coordinates) {
-    vertex_attributes_array->texture_coordinates = texture_coordinates;
-}
-void add_color_vertex_attribute(Vertex_Attributes_Array *vertex_attributes_array, V3 *colors) {
-    vertex_attributes_array->colors = colors;
-}
-
+// redo
 Shader_Pipeline create_shader_pipeline(Shader_Value_Array uniforms, Vertex_Attributes_Array attributes_array, Vertex_Shader vertex_shader, Fragment_Shader fragment_shader) {
     Shader_Pipeline result = {};
     result.uniforms = uniforms;
@@ -42,10 +30,19 @@ Shader_Pipeline create_shader_pipeline(Shader_Value_Array uniforms, Vertex_Attri
 Clip_Triangle perspective_divide(Clip_Triangle triangle) {
     Clip_Triangle result = triangle;
     result.v0 = result.v0 / result.v0.w;
-    result.v1 = result.v0 / result.v0.w;
-    result.v2 = result.v0 / result.v0.w;
+    result.v1 = result.v1 / result.v1.w;
+    result.v2 = result.v2 / result.v2.w;
     
     return result;
+}
+
+void function thing() {
+    add_attribute(arena, Shader_Value_Type_V3, &vertices);
+};
+
+void add_attribute(Shader_Pipeline *pipeline, Arena *arena, u8 *data, u64 size) {
+    u8 *attribute_ptr = arena_push_struct(arena, sizeof(u8*), 1);
+    pipeline->
 }
 
 // note: this is honestly really risky, might bite me in the ass
@@ -82,6 +79,10 @@ void draw_object(Render_Entity entity, Shader_Pipeline *pipeline, Arena *arena) 
         pre_clipping_triangle.v1 = clip_v1;
         pre_clipping_triangle.v2 = clip_v2;
         
+        // problem: if we clip triangles, we have to keep this is mind to interpolate whatever attributes and outputs.
+        // I think we can solve this by interpolating inside the function. I will have to get all attributes and outputs, and interpolate them
+        // appropiately, i will have to create a new triangle tho, i think yes. There will be more triangles in the pipeline than originally oviously
+        // so just take that in mind
         u32 clip_triangle_count = 0;
         Clip_Triangle clipped_triangles[2];
         clip_triangle(pre_clipping_triangle, clipped_triangles, &clip_triangle_count);

@@ -54,6 +54,10 @@ u8 *arena_push_struct(Arena *arena, u64 size, u64 count) {
     return result;
 }
 
+u8 *arena_get_end_ptr(Arena *arena) {
+    u8 *result = arena->data + arena->end;
+    return result;
+}
 void arena_clear(Arena *arena) {
     if (arena->data != 0) {
         memset(arena->data, arena->size, 0);
@@ -72,5 +76,12 @@ void memset(u8 *data, u64 size, u8 to) {
         for (u64 index = 0; index < size; ++index) {
             data[index] = to;
         } 
+    }
+}
+
+// ooo unsafe
+void memcpy(u8 *dest, u8* src, u64 count) {
+    for (u64 index = 0; index < count; ++index) {
+        dest[index] = src[index];
     }
 }

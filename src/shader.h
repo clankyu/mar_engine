@@ -5,14 +5,33 @@
 #include "memory.h"
 #include "util.h"
 
+#ifndef Shader_Value_Types
+#define Shader_Value_Types \
+Define_Shader_Value_Type(f32)\
+Define_Shader_Value_Type(V2)\
+Define_Shader_Value_Type(V3)\
+Define_Shader_Value_Type(V4)\
+Define_Shader_Value_Type(M3)\
+Define_Shader_Value_Type(M4)
+#endif
+
 enum Shader_Value_Type : u32 {
-    Shader_Value_Type_f32,
-    Shader_Value_Type_V2,
-    Shader_Value_Type_V3,
-    Shader_Value_Type_V4,
-    Shader_Value_Type_M3,
-    Shader_Value_Type_M4,
+    #define Define_Shader_Value_Type(type) Shader_Value_Type_##type,
+    Shader_Value_Types
+    #undef Define_Shader_Value_Type
 };
+
+inline u64 get_shader_value_type_size(Shader_Value_Type type) {
+    u64 result = 0;
+    u64 type_sizes[] = {
+        #define Define_Shader_Value_Type(type) sizeof(type),
+        Shader_Value_Types
+        #undef Define_Shader_Value_Type
+    };
+    
+    result = types_sizes[type];
+    return result;
+}
 
 struct Shader_Value {
     Shader_Value_Type type;
@@ -31,12 +50,23 @@ struct Shader_Value_Array {
     Shader_Value *value;
 };
 
-struct Vertex_Attributes {
-    V3 pos; 
-    V3 normal;
-    V2 uv;
-    V3 color;
+struct Vertex_Output_Array {
+    Shader_value_Type *type_pattern;
 };
+
+void vertex_shader() {
+    u8 *type_ptr = output_v3() -> arena_push_struct(arena, sizeof(Shader_Value_Type), 1);
+}
+
+Vertex_Output_Array vertex_shader(Arena *arena) {
+    Vertex_Output_Array result = {};
+    result.data = pipeline->vertex_shader.function();
+    V4 *pos_ptr = arena_push_struct(arena, sizeof(V4), 1);
+    *pos_ptr = pos;
+        
+    return pos;
+}
+
 
 struct Vertex_Shader_Result {
     Shader_Value_Array *outputs;
@@ -83,3 +113,4 @@ void add_color_vertex_attribute(Shader_Value_Array *vertex_attributes_array, V3 
 Shader_Pipeline create_shader_pipeline(Shader_Value_Array uniforms, Shader_Value_Array attributes_array, Vertex_Shader vertex_shader, Fragment_Shader fragment_shader);
 
 // todo: finish shader pipeline, interpolating, clipping, think about how to do it precisely
+#undef Shader_Value_Types
