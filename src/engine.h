@@ -45,9 +45,15 @@ inline u32 get_frame_buffer_pixel_count(Frame_Buffer *src) {
     return result;
 }
 
-inline void clear_frame_buffer(Frame_Buffer *src, u8 color) {
-    memset(src->color_buffer, 0, get_frame_buffer_byte_count(src));
-    memset(src->depth_buffer, 0, get_frame_buffer_byte_count(src));
+inline void clear_frame_buffer(Frame_Buffer *src, u32 color) {
+    u64 pixel_count = get_frame_buffer_pixel_count(src);
+    
+    for (u64 index = 0; index < pixel_count; ++index) {
+        src->color_buffer[index] = color;
+    }
+    for (u64 index = 0; index < pixel_count; ++index) {
+        src->depth_buffer[index] = 100000.0f;
+    }
 }
 
 struct Engine {

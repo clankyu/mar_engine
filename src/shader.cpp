@@ -54,7 +54,6 @@ static V4 get_clip_vertex_pos(u8 **vertex_shader_output_array, u64 triangle_inde
     return result;
 }
 
-// todo: implement arenas for uniforms array and inputs and outputs
 void draw_object(Render_Entity entity, Shader_Pipeline *pipeline, Arena *arena) {
     Shader_Value_Array uniforms = pipeline->uniforms;
     Vertex_Attributes_Array *attributes_array = pipeline->attributes_array;

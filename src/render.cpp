@@ -165,7 +165,11 @@ void draw_triangle(Frame_Buffer *frame_buffer, Clip_Triangle clip_triangle) {
 
                 // todo: only render pixels that can actually be seen and not behind or too far
                 // todo: actually interact with the depth buffer
-                put_pixel(frame_buffer, x, y, color);
+                u64 frame_buffer_index = (u64) x + (u64) y * width;
+                if (interpolated_z < frame_buffer->depth_buffer[frame_buffer_index]) {
+                    put_pixel(frame_buffer, x, y, color);
+                    frame_buffer->depth_buffer[frame_buffer_index] = interpolated_z;
+                }
             }
 
             w0 += delta_w0_col;

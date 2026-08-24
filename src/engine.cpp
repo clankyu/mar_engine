@@ -38,7 +38,7 @@ s32 init_engine() {
     engine.running = true;
     engine.paused = false;
 
-    engine.shader_arena = arena_init(MiB(50);
+    engine.shader_arena = arena_init(MiB(50));
     arena_touch_pages(&engine.shader_arena);
     
     return 0;
@@ -65,6 +65,7 @@ Frame_Buffer frame_buffer_init(u32 width, u32 height) {
     result.height = height;
     result.color_buffer = (u32*) malloc(width * height * sizeof(u32));
     result.depth_buffer = (f32*) malloc(width * height * sizeof(f32));
+    clear_frame_buffer(&result, 0);
 
     return result;
 }
