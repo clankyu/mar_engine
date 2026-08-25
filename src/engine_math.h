@@ -247,6 +247,11 @@ struct V3u {
         u32 b;
         u32 c;
     };
+    union {
+        u32 v0;
+        u32 v1;
+        u32 v2;
+    };
 };
 
 inline V3 create_v3(f32 x, f32 y, f32 z) {

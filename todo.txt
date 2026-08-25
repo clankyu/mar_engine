@@ -1,3 +1,5 @@
 Growable arenas.
 Textures and texture mapping.
-Re-design shader pipeline.
+Obj asset loader.
+
+Re-design shader pipeline. // In progress
