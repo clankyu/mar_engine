@@ -93,9 +93,33 @@ struct Fragment_Shader {
     Fragment_Shader_Function function;
 };
 
+struct Shader_Uniform {
+    Shader_Value_Type type;
+    u8 *data;
+};
+
+struct Shader_Uniform_Array {
+    Shader_Uniform *items;
+    u64 count;
+    u64 capacity;
+};
+
+struct Vertex_Attribute {
+    Shader_Value_Type type;
+    u64 count;
+    u8 *data;
+};
+
+struct Vertex_Attribute_Array {
+    Vertex_Attribute *items;
+    u64 count;
+    u64 capacity;
+};
+
 struct Shader_Pipeline {
-    Shader_Value_Array uniforms;
-    Shader_Value_Array attributes_array;
+    Vertex_Attribute_Array attributes;
+    Shader_Uniform_Array uniforms;
+    
     Vertex_Shader vertex_shader;
     Fragment_Shader fragment_shader;
     Frame_Buffer *frame_buffer;
@@ -105,10 +129,8 @@ struct Shader_Pipeline {
 Shader_Value_Array init_shader_uniforms(Arena *arena);
 void push_shader_uniform(Shader_Value_Array *uniforms, Arena *arena, Shader_Value value);
 
-void add_position_vertex_attribute(Shader_Value_Array *vertex_attributes_array, V3 *positions);
-void add_normal_vertex_attribute(Shader_Value_Array *vertex_attributes_array, V3 *normals);
-void add_texture_coordinate_vertex_attribute(Shader_Value_Array *vertex_attributes_array, V2 *texture_coordinates);
-void add_color_vertex_attribute(Shader_Value_Array *vertex_attributes_array, V3 *colors);
+void add_attribute(Shader_Pipeline *pipeline, u8 *data, Shader_Value_Type type, u64 count);
+void add_uniform(Shader_Pipeline *pipeline, u8 *data, Shader_Value_Type type);
 
 Shader_Pipeline create_shader_pipeline(Shader_Value_Array uniforms, Shader_Value_Array attributes_array, Vertex_Shader vertex_shader, Fragment_Shader fragment_shader);
 

@@ -2,6 +2,8 @@
 #include "util.h"
 #include "render.h"
 #include "engine.h"
+#include "engine_math.h"
+#include "memory.h"
 
 int main(int argc, char **argv) {
     init_engine();
@@ -37,6 +39,7 @@ int main(int argc, char **argv) {
         V3 pos = engine.camera.pos;
         printf("rotation: pitch: %f | yaw: %f | roll: %f\n", rot.pitch, rot.yaw, rot.roll);
         printf("position: x: %f | y: %f | z: %f\n", pos.x, pos.y, pos.z);
+
         
         clear_screen(0x0);
         

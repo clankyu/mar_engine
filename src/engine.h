@@ -84,7 +84,10 @@ struct Engine {
     bool paused;
     bool should_pause_at_rendering;
     
-    Arena shader_arena;
+    // something like this
+    Arena shader_uniform_arena;
+    Arena vertex_attribute_arena;
+    Arena vertex_scratch_arena;
 };
 
 extern Engine engine;

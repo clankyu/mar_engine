@@ -170,11 +170,9 @@ void draw_object(Render_Entity entity, Shader_Pipeline *pipeline, Arena *arena) 
 
 void program() {
     Arena vertex_scratch_arena = arena_init(MiB(2));
-    Arena uniform_arena = arena_init(MiB(20));
     Arena cpu_arena = arena_init(MiB(50));
     Arena gpu_arena = arena_init(MiB(60));
     arena_touch_pages(&vertex_scratch_arena);
-    arena_touch_pages(&uniform_arena);
     arena_touch_pages(&cpu_arena);
     arena_touch_pages(&gpu_arena);
     
@@ -188,9 +186,10 @@ void program() {
     M4 projection = get_projection_matrix();
     
     Shader_Pipeline pipeline = create_shader_pipeline();
+    
     add_attribute(&pipeline, pos, Shader_Value_Type_V3, vertex_count);
     add_attribute(&pipeline, normals, Shader_Value_Type_V3, vertex_count);
-    
+
     add_uniform(&pipeline, &model, Shader_Value_Type_M4);
     add_uniform(&pipeline, &view, Shader_Value_Type_M4);
     add_uniform(&pipeline, &projection, Shader_Value_Type_M4);
@@ -383,11 +382,11 @@ draw_clipped_triangle(Shader_Pipeline *pipeline, Clip_Triangle clipped_triangle,
     }
 }
 
-V3 in_smooth_v3(Shader_Pipeline *pipeline, u64 triangle_index, f32 v0_weight, f32 v1_weight, f32 v2_weight, V3u vertex_indices, Clipping_Information clip_info) {
+V3 in_smooth_v3(Shader_Pipeline *pipeline, u64 input_index, f32 v0_weight, f32 v1_weight, f32 v2_weight, V3u vertex_indices, Clipping_Information clip_info) {
     V3 result = {};
-    V3 v0 = in_v3(pipeline, input_index, verte);
-    V3 v1 = in_v3(pipeline, input_index, verte);
-    V3 v2 = in_v3(pipeline, input_index, verte); // dude idk
+    V3 v0 = in_v3(pipeline, vertex_indices.v0, input_index);
+    V3 v1 = in_v3(pipeline, vertex_indices.v1, input_index);
+    V3 v2 = in_v3(pipeline, vertex_indices.v2, input_index);    
     
     v0 = clip_info.alpha0_1 != 0.0f ? v3_lerp(v0, v1, clip_info.alpha0_1) : v0;     
     v0 = clip_info.alpha0_2 != 0.0f ? v3_lerp(v0, v2, clip_info.alpha0_2) : v0;     
@@ -401,3 +400,138 @@ V3 in_smooth_v3(Shader_Pipeline *pipeline, u64 triangle_index, f32 v0_weight, f3
     result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
     return result;
 }
+
+f32 in_smooth_f32(Shader_Pipeline *pipeline, u64 input_index, f32 v0_weight, f32 v1_weight, f32 v2_weight, V3u vertex_indices, Clipping_Information clip_info) {
+    f32 result = 0.0f; 
+    f32 v0 = in_f32(pipeline, vertex_indices.v0, input_index);
+    f32 v1 = in_f32(pipeline, vertex_indices.v1, input_index);
+    f32 v2 = in_f32(pipeline, vertex_indices.v2, input_index);
+    
+    v0 = clip_info.alpha0_1 != 0.0f ? lerp(v0, v1, clip_info.alpha0_1) : v0;     
+    v0 = clip_info.alpha0_2 != 0.0f ? lerp(v0, v2, clip_info.alpha0_2) : v0;     
+  
+    v1 = clip_info.alpha1_0 != 0.0f ? lerp(v1, v0, clip_info.alpha1_0) : v1;     
+    v1 = clip_info.alpha1_2 != 0.0f ? lerp(v1, v2, clip_info.alpha1_2) : v1;     
+ 
+    v2 = clip_info.alpha2_0 != 0.0f ? lerp(v2, v0, clip_info.alpha2_0) : v2;     
+    v2 = clip_info.alpha2_1 != 0.0f ? lerp(v2, v1, clip_info.alpha2_1) : v2;     
+    
+    result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
+    return result;
+}
+
+f32 in_flat_v3(Shader_Pipeline *pipeline, u64 input_index, u64 triangle_index, Clipping_Information clip_info) {
+    V3 result = {};
+}
+
+f32 in_v3(Shader_Pipeline *pipeline, u64 vertex_index, u64 input_index);
+
+void add_attribute(Shader_Pipeline *pipeline, u8 *data, Shader_Value_Type type, u64 count) {
+    Vertex_Attribute result = {};
+    result.type = type;
+    result.count = count;
+    result.data = data;
+    
+    da_append(pipeline->attributes, result);
+}
+    
+void add_uniform(Shader_Pipeline *pipeline, u8 *data, Shader_Value_Type type) {
+    Shader_Uniform result = {};
+    result.type = type;
+    result.data = data;
+    
+    da_append(pipeline->uniforms, result);
+};    
+
+Shader_Pipeline create_shader_pipeline() {
+    Shader_Pipeline result = {};
+    da_init(result.uniforms);
+    da_init(result.attributes);
+    
+    return result;
+};
+
+// todo: some form of error handling or something like that
+f32 load_attribute_f32(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    f32 result = 0.0f;
+    result = *((f32*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+V2 load_attribute_v2(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V2 result = {};
+    result = *((V2*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+V3 load_attribute_v3(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V3 result = {};
+    result = *((V3*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+V4 load_attribute_v4(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V3 result = {};
+    result = *((V4*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+M3 load_attribute_m3(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V3 result = {};
+    result = *((M3*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+M4 load_attribute_m4(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V3 result = {};
+    result = *((M4*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+f32 load_uniform_f32(Shader_Pipeline *pipeline, u64 uniform_index) {
+    f32 result = 0.0f;
+    result = *((f32*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+V2 load_uniform_v2(Shader_Pipeline *pipeline, u64 uniform_index) {
+    V2 result = 0.0f;
+    result = *((V2*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+V3 load_uniform_v3(Shader_Pipeline *pipeline, u64 uniform_index) {
+    V3 result = 0.0f;
+    result = *((V3*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+V4 load_uniform_v4(Shader_Pipeline *pipeline, u64 uniform_index) {
+    V4 result = 0.0f;
+    result = *((V4*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+M3 load_uniform_m3(Shader_Pipeline *pipeline, u64 uniform_index) {
+    V2 result = 0.0f;
+    result = *((M3*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+M4 load_uniform_m4(Shader_Pipeline *pipeline, u64 uniform_index) {
+    M4 result = 0.0f;
+    result = *((M4*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
