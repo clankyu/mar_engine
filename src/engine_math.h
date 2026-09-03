@@ -212,6 +212,11 @@ inline V2 create_v2() {
     return result;
 }
 
+inline V2 v2_lerp(V2 a, V2 b, V2 alpha) {
+    V2 result = a + (b - a) * alpha;
+    return result;
+}
+
 struct V3 {
     union {
         struct {

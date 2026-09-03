@@ -85,9 +85,8 @@ struct Engine {
     bool should_pause_at_rendering;
     
     // something like this
-    Arena shader_uniform_arena;
-    Arena vertex_attribute_arena;
-    Arena vertex_scratch_arena;
+    Arena gpu_arena;
+    Arena clipping_arena;
 };
 
 extern Engine engine;

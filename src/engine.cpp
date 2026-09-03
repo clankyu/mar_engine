@@ -38,6 +38,11 @@ s32 init_engine() {
     engine.running = true;
     engine.paused = false;
     
+    engine.gpu_arena = arena_init(MiB(100));
+    engine.clipping_arena = arena_init(MiB(1));
+    arena_touch_pages(&engine.gpu_arena);
+    arena_touch_pages(&engine.clipping_arena);
+    
     return 0;
 }
 

@@ -221,6 +221,8 @@ struct Raster_Vertex {
 
 Raster_Vertex ndc_to_raster(V4 ndc_vertex, f32 w, Colorf color, f32 width, f32 height);
 void order_vertices_clockwise(Raster_Vertex *v0, Raster_Vertex *v1, Raster_Vertex *v2);
+void order_vertices_and_info_clockwise(Raster_Vertex *v0, Raster_Vertex *v1, Raster_Vertex *v2, V3u *indices);
+
 
 void put_pixel(Frame_Buffer *framebuffer, s32 x, s32 y, u32 color);
 

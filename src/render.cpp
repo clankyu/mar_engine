@@ -291,6 +291,61 @@ void order_vertices_clockwise(Raster_Vertex *v0, Raster_Vertex *v1, Raster_Verte
     }
 }
 
+// weird derefercing stuff but idk
+void order_vertices_clockwise_and_info_clockwise(V4 *v0, V4 *v1, V4 *v2, V3u *indices, Clipping_Information *clip_info) {
+    if (is_top_left(v2->xy, v1->xy)) {
+        Raster_Vertex v0_temp = *v0;
+        *v0 = *v2;
+        *v2 = v0_temp;
+        
+        u32 v0_index_temp = *indices->v0;
+        *indices->v0 = *indices->v2;
+        *indices->v2 = v0_index_temp;
+        
+        // note: very weird but i think it works lol
+        Clipping_Information temp = *clip_info;
+        clip_info->alpha0_1 = temp.alpha2_1;
+        clip_info->alpha0_2 = temp.alpha2_0;
+        clip_info->alpha2_0 = temp.alpha0_2;
+        clip_info->alpha2_1 = temp.alpha0_1;
+        clip_info->alpha1_0 = temp.alpha1_2;
+        clip_info->alpha1_2 = temp.alpha1_0;
+    } else if (is_top_left(v0->xy, v2->xy)) {
+        Raster_Vertex v2_temp = *v2;
+        *v2 = *v1;
+        *v1 = v2_temp;
+        
+        u32 v2_index_temp = *indices->v2;
+        *indices->v2 = *indices->v1;
+        *indices->v1 = v2_index_temp;
+        
+        Clipping_Information temp = *clip_info;
+        
+        clip_info->alpha2_0 = temp.alpha1_0;
+        clip_info->alpha2_1 = temp.alpha1_2;
+        clip_info->alpha1_0 = temp.alpha2_0;
+        clip_info->alpha1_2 = temp.alpha2_1;
+        clip_info->alpha0_1 = temp.alpha0_2;
+        clip_info->alpha0_1 = temp.alpha0_1;
+    } else if (is_top_left(v1->xy, v0->xy)) {
+        Raster_Vertex v0_temp = *v0;
+        *v0 = *v1;
+        *v1 = v0_temp;
+        
+        u32 v0_index_temp = *indices->v0;
+        *indices->v0 = *indices->v1;
+        *indices->v1 = v0_index_temp;
+        
+        Clipping_Information temp = *clip_info;
+        clip_info->alpha0_1 = temp.alpha1_0;
+        clip_info->alpha0_2 = temp.alpha1_2;
+        clip_info->alpha1_0 = temp.alpha0_1;
+        clip_info->alpha1_2 = temp.alpha0_2;
+        clip_info->alpha2_0 = temp.alpha2_1;
+        clip_info->alpha2_1 = temp.alpha2_0;
+    }
+}
+
 // checks if it's atleast partially in, only returns false if it's completely outside the view frustum
 b32 triangle_in_view_frustum(Clip_Triangle t) {
     V4 v0 = t.v0.pos;

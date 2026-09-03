@@ -54,20 +54,6 @@ struct Vertex_Output_Array {
     Shader_value_Type *type_pattern;
 };
 
-void vertex_shader() {
-    u8 *type_ptr = output_v3() -> arena_push_struct(arena, sizeof(Shader_Value_Type), 1);
-}
-
-Vertex_Output_Array vertex_shader(Arena *arena) {
-    Vertex_Output_Array result = {};
-    result.data = pipeline->vertex_shader.function();
-    V4 *pos_ptr = arena_push_struct(arena, sizeof(V4), 1);
-    *pos_ptr = pos;
-        
-    return pos;
-}
-
-
 struct Vertex_Shader_Result {
     Shader_Value_Array *outputs;
     V4 position; // ideally clip space position
@@ -78,14 +64,6 @@ typedef Vertex_Shader_Result (*Vertex_Shader_Function)(VERTEX_SHADER_PARAMETERS)
 struct Vertex_Shader {
     Vertex_Shader_Function function;
 };
-
-
-#define get_uniform_f32(index) uniforms.values[index].f32
-#define get_uniform_v2(index) uniforms.values[index].V2
-#define get_uniform_v3(index) uniforms.values[index].V3
-#define get_uniform_v4(index) uniforms.values[index].V4
-#define get_uniform_m3(index) uniforms.values[index].M3
-#define get_uniform_m4(index) uniforms.values[index].M4
 
 #define FRAGMENT_SHADER_PARAMETERS Shader_Value_Array attributes_array, u8* inputs, V3u triangle_indices, V3 barycentric_coordinates 
 typedef Colorf (*Fragment_Shader_Function)(FRAGMENT_SHADER_PARAMETERS);
@@ -116,9 +94,20 @@ struct Vertex_Attribute_Array {
     u64 capacity;
 };
 
+struct Shader_Value_Type_Array {
+    Shader_Value_Type *items;
+    u64 count;
+    u64 capacity;
+};
+
 struct Shader_Pipeline {
+    Arena *gpu_arena;
     Vertex_Attribute_Array attributes;
     Shader_Uniform_Array uniforms;
+    
+    Shader_Value_Type_Array output_pattern;
+    b32 output_pattern_initialized;
+    Arena *clipping_arena;
     
     Vertex_Shader vertex_shader;
     Fragment_Shader fragment_shader;
@@ -126,13 +115,44 @@ struct Shader_Pipeline {
     b32 depth_testing;
 };
 
-Shader_Value_Array init_shader_uniforms(Arena *arena);
-void push_shader_uniform(Shader_Value_Array *uniforms, Arena *arena, Shader_Value value);
-
 void add_attribute(Shader_Pipeline *pipeline, u8 *data, Shader_Value_Type type, u64 count);
 void add_uniform(Shader_Pipeline *pipeline, u8 *data, Shader_Value_Type type);
+u64 get_pattern_offset(Shader_Value_Type_Array *pattern, u64 input_index);
+u64 get_shader_value_type_array_size(Shader_Value_Array *arr);
+u8 *get_inputs_ptr(Shader_Pipeline *pipeline, u64 vertex_index);
+V4 get_pos(Shader_Pipeline *pipeline, u64 vertex_index);
 
-Shader_Pipeline create_shader_pipeline(Shader_Value_Array uniforms, Shader_Value_Array attributes_array, Vertex_Shader vertex_shader, Fragment_Shader fragment_shader);
+Shader_Pipeline create_shader_pipeline(Arena *clipping_arena, Vertex_Shader vertex_shader, Fragment_Shader fragment_shader);
 
-// todo: finish shader pipeline, interpolating, clipping, think about how to do it precisely
+inline void output_pos(u8 *output_ptr, V4 pos) {
+    *output_ptr = pos;
+}
+
+inline void output_f32(Shader_Pipeline *pipeline, f32 value) {
+    output(pipeline, &value, Shader_Value_Type_f32);
+}        
+inline void output_v2(Shader_Pipeline *pipeline, V2 value) {
+    output(pipeline, &value, Shader_Value_Type_V2);
+}        
+inline void output_v3(Shader_Pipeline *pipeline, V3 value) {
+    output(pipeline, &value, Shader_Value_Type_V3);
+}
+inline void output_v4(Shader_Pipeline *pipeline, V4 value) {
+    output(pipeline, &value, Shader_Value_Type_V4);
+}
+inline void output_m3(Shader_Pipeline *pipeline, M3 value) {
+    output(pipeline, &value, Shader_Value_Type_M3);
+}
+inline void output_m4(Shader_Pipeline *pipeline, M4 value) {
+    output(pipeline, &value, Shader_Value_Type_M4);
+}
+
+// this is probably very slow, copying byte by byte, but for now ok i guess
+inline void output(Shader_Pipeline *pipeline, u8 *value_ptr, Shader_Value_Type type) {
+    if (!pipeline->output_pattern_initialized) { da_append(pipeline->output_pattern, type); }
+    u64 size - get_shader_value_type_size(type);
+    u8 *result = arena_push(pipeline->gpu_arena, size);
+    memcpy(result, value_ptr, size);
+}
 #undef Shader_Value_Types
+
