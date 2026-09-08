@@ -83,7 +83,7 @@ void program() {
                     u8 *v1_inputs = get_inputs_ptr(pipeline, triangle_indices.v1);
                     u8 *v2_inputs = get_inputs_ptr(pipeline, triangle_indices.v2);
             
-                    draw_triangle(&pipeline, v0_inputs, v1_inputs, v2_inputs, triangle_indices);
+                    draw_triangle(&pipeline, v0_inputs, v1_inputs, v2_inputs);
                 }
             }
         }
@@ -171,8 +171,8 @@ void clip_and_draw_one_out(Shader_Pipeline *pipeline, u32 out_index, u32 in1_ind
     interpolate_clipped_inputs(pipeline, v0_ptr0, v1_ptr0, v2_ptr0, clip_info0);
     interpolate_clipped_inputs(pipeline, v0_ptr1, v1_ptr1, v2_ptr1, clip_info1);
     
-    draw_triangle(pipeline, v0_ptr0, v1_ptr0, v2_ptr0, indices0);
-    draw_triangle(pipeline, v0_ptr1, v1_ptr1, v2_ptr1, indices1);
+    draw_triangle(pipeline, v0_ptr0, v1_ptr0, v2_ptr0);
+    draw_triangle(pipeline, v0_ptr1, v1_ptr1, v2_ptr1);
 }
 
 
@@ -209,10 +209,8 @@ void clip_and_draw_two_out(Shader_Pipeline *pipeline, u32 out1_index, u32 out2_i
     
     interpolate_clipped_inputs(pipeline, v0_ptr, v1_ptr, v2_ptr, clip_info);
     
-    draw_triangle(pipeline, v0_ptr, v1_ptr, v2_ptr, indices);
+    draw_triangle(pipeline, v0_ptr, v1_ptr, v2_ptr);
 } 
-
-// before fragment shader, interpolate all inputs (for clipping only);
 
 void interpolate_clipped_inputs(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, Clipping_Information clip_info) {
     u64 input_count = pipeline->output_pattern.count;
@@ -295,7 +293,7 @@ void interpolate_clipped_inputs(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_pt
     }
 }
 
-draw_triangle(Shader_Pipeline *pipeline, u8 *v0_inputs, u8 *v1_inputs, u8 *v2_inputs, V3u indices) {
+draw_triangle(Shader_Pipeline *pipeline, u8 *v0_inputs, u8 *v1_inputs, u8 *v2_inputs) {
     Clip_Triangle ndc_triangle = perspective_divide(clipped_triangle);        
     assert(!triangle_should_be_clipped(ndc_triangle));
     
@@ -351,7 +349,13 @@ draw_triangle(Shader_Pipeline *pipeline, u8 *v0_inputs, u8 *v1_inputs, u8 *v2_in
                 V3 normal = in_smooth_v3(pipeline, 0, v0_weight, v1_weight, v2_weight, indices, clip_info);
                 V2 pos = { x, y };
                 
-                u32 result = pipeline->fragment_shader.function(&attributes_array, vertex_shader_output_array[triangle_index], triangle_indices, barycentric_coordinates);
+                u32 result = pipeline->fragment_shader.function(pipeline, v0_inputs, v1_inputs, v2_inputs, barycentric_coordinates);
+                u32 fragment_shader_thing(Shader_Pipeline *pipeline, u8 *v0_inputs, u8 *v1_inputs, u8 *v2_input, barycentric_coordinates) {
+                    M4 model = load_uniform_m4(pipeline, 0);
+                    
+                    V3 normal = internal_in_smooth_v3(pipeline, v0_inputs, v1_inputs, v2_inputs, barycentric_coordinates.a, barycentric_coordinates.b, barycentric_coordinates.c, 0);
+                    V3 normal = in_smooth_v3(0);
+                }
                 f32 interpolated_z = 1.0f / (v0.one_over_w * v0_weight + v1.one_over_w * v1_weight + v2.one_over_w * v2_weight);
                 
                 if (pipeline.depth_testing) {
@@ -507,101 +511,112 @@ M4 load_uniform_m4(Shader_Pipeline *pipeline, u64 uniform_index) {
 };
 
 // todo: i think now that we've clipped we can just multiply by barycentric coordinates
-f32 in_smooth_f32(Shader_Pipeline *pipeline, u64 input_index, f32 v0_weight, f32 v1_weight, f32 v2_weight, V3u vertex_indices, Clipping_Information clip_info) {
+f32 internal_in_smooth_f32(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index) {
     f32 result = 0.0f; 
-    f32 v0 = in_f32(pipeline, vertex_indices.v0, input_index);
-    f32 v1 = in_f32(pipeline, vertex_indices.v1, input_index);
-    f32 v2 = in_f32(pipeline, vertex_indices.v2, input_index);
+    f32 v0 = in_f32(pipeline, v0_ptr, input_index);
+    f32 v1 = in_f32(pipeline, v1_ptr, input_index);
+    f32 v2 = in_f32(pipeline, v2_ptr, input_index);
     
     result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
     return result;
 }
 
-V2 in_smooth_v2(Shader_Pipeline *pipeline, u64 input_index, f32 v0_weight, f32 v1_weight, f32 v2_weight, V3u vertex_indices, Clipping_Information clip_info) {
+V2 internal_in_smooth_v2(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index) {
     V2 result = {};
-    V2 v0 = in_v2(pipeline, vertex_indices.v0, input_index);
-    V2 v1 = in_v2(pipeline, vertex_indices.v1, input_index);
-    V2 v2 = in_v2(pipeline, vertex_indices.v2, input_index);    
+    V2 v0 = in_v2(pipeline, v0_ptr, input_index);
+    V2 v1 = in_v2(pipeline, v1_ptr, input_index);
+    V2 v2 = in_v2(pipeline, v2_ptr, input_index);    
     
     result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
     return result;
 }
 
-V3 in_smooth_v3(Shader_Pipeline *pipeline, u64 input_index, f32 v0_weight, f32 v1_weight, f32 v2_weight, V3u vertex_indices, Clipping_Information clip_info) {
+V3 internal_in_smooth_v3(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index) {
     V3 result = {};
-    V3 v0 = in_v3(pipeline, vertex_indices.v0, input_index);
-    V3 v1 = in_v3(pipeline, vertex_indices.v1, input_index);
-    V3 v2 = in_v3(pipeline, vertex_indices.v2, input_index);    
+    V3 v0 = in_v3(pipeline, v0_ptr, input_index);
+    V3 v1 = in_v3(pipeline, v1_ptr, input_index);
+    V3 v2 = in_v3(pipeline, v2_ptr, input_index);    
     
     result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
     return result;
 }
 
-V4 in_smooth_v4(Shader_Pipeline *pipeline, u64 input_index, f32 v0_weight, f32 v1_weight, f32 v2_weight, V3u vertex_indices, Clipping_Information clip_info) {
+V4 internal_in_smooth_v4(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index) {
     V4 result = {};
-    V4 v0 = in_v4(pipeline, vertex_indices.v0, input_index, clip_info);
-    V4 v1 = in_v4(pipeline, vertex_indices.v1, input_index, clip_info);
-    V4 v2 = in_v4(pipeline, vertex_indices.v2, input_index, clip_info);    
+    V4 v0 = in_v4(pipeline, v0_ptr, input_index);
+    V4 v1 = in_v4(pipeline, v1_ptr, input_index);
+    V4 v2 = in_v4(pipeline, v2_ptr, input_index);    
     
     result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
     return result;
 }
 
 // todo: check that this actually works, and see if simpler way to do it
-f32 in_flat_f32(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index, Clipping_Information clip_info) {
+f32 internal_in_flat_f32(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
     f32 result = 0.0f;
-    u64 pattern_offset = get_pattern_offset();
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
     u8 *value_ptr = input_ptr + pattern_offset;
     result = *(f32*)value_ptr;
     
     return result;
 }
 
-V2 in_flat_v2(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index, Clipping_Information clip_info) {
+V2 internal_in_flat_v2(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
     V2 result = {};
-    u64 pattern_offset = get_pattern_offset();
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
     u8 *value_ptr = input_ptr + pattern_offset;
     result = *(V2*)value_ptr;
     
     return result;
 }
 
-V3 in_flat_v3(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index, Clipping_Information clip_info) {
+V3 internal_in_flat_v3(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
     V3 result = {};
-    u64 pattern_offset = get_pattern_offset();
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
     u8 *value_ptr = input_ptr + pattern_offset;
     result = *(V3*)value_ptr;
     
     return result;
 }
 
-V4 in_flat_v4(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index, Clipping_Information clip_info) {
+V4 internal_in_flat_v4(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
     V4 result = {};
-    u64 pattern_offset = get_pattern_offset();
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
     u8 *value_ptr = input_ptr + pattern_offset;
     result = *(V4*)value_ptr;
-    
-    result = clip_info.alpha0_1 != 0.0f ? v4_lerp(v0, v1, clip_info.alpha0_1) : result;     
-    v0 = clip_info.alpha0_2 != 0.0f ? v4_lerp(v0, v2, clip_info.alpha0_2) : v0;     
     
     return result;
 }
 
-M3 in_flat_m3(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
+M3 internal_in_flat_m3(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
     M3 result = {};
-    u64 pattern_offset = get_pattern_offset();
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
     u8 *value_ptr = input_ptr + pattern_offset;
     result = *(M3*)value_ptr;
     
     return result;
 }
 
-M4 in_flat_m4(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
+M4 internal_in_flat_m4(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
     M4 result = {};
-    u64 pattern_offset = get_pattern_offset();
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
     u8 *value_ptr = input_ptr + pattern_offset;
     result = *(M4*)value_ptr;
     
     return result;
+}
+
+void internal_fragment_shader_output(u8 *result_ptr, V4 color_result) {
+    V4 *color = (V4*)output;
+    *color = result;
+}
+
+FRAGMENT_SHADER_FUNCTION diffuse(FRAGMENT_SHADER_PARAMETERS) {
+    M4 model = uniform_m4(0);
+    V3 normal = in_smooth_v3(0);
+    
+    V4 result = create_v4(normal) * create_v4(1.0f, 1.0f, 1.0f, 1.0f);
+    
+    fragment_shader_output(result);
 }
 

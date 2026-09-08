@@ -147,6 +147,36 @@ inline void output_m4(Shader_Pipeline *pipeline, M4 value) {
     output(pipeline, &value, Shader_Value_Type_M4);
 }
 
+f32 internal_in_smooth_f32 (Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index);
+V2 internal_in_smooth_v2   (Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index);
+V3 internal_in_smooth_v3   (Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index);
+V4 internal_in_smooth_v4   (Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index);
+
+f32 internal_in_flat_f32 (Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index);
+V2 internal_in_flat_v2   (Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index);
+V3 internal_in_flat_v3   (Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index);
+V4 internal_in_flat_v4   (Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index);
+M3 internal_in_flat_m3   (Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index);
+M4 internal_in_flat_m4   (Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index);
+
+// note: ONLY use these inside of a fragment shader
+#define FRAGMMENT_SHADER_PARAMETERS Shader_Pipeline *pipeline, u8 *v0_inputs, u8 *v1_inputs, u8 *v2_inputs, V3 barycentric_coordinates, u8 *result_ptr
+#define FRAGMENT_SHADER_FUNCTION V4
+#define in_smooth_f32(input_index) internal_in_smooth_f32 (pipeline, v0_inputs, v1_inputs, v2_inputs, barycentric_coordinates.a, barycentric_coordinates.b barycentric_coordinates.c, input_index) 
+#define in_smooth_v2(input_index)  internal_in_smooth_v2  (pipeline, v0_inputs, v1_inputs, v2_inputs, barycentric_coordinates.a, barycentric_coordinates.b barycentric_coordinates.c, input_index) 
+#define in_smooth_v3(input_index)  internal_in_smooth_v3  (pipeline, v0_inputs, v1_inputs, v2_inputs, barycentric_coordinates.a, barycentric_coordinates.b barycentric_coordinates.c, input_index) 
+#define in_smooth_v4(input_index)  internal_in_smooth_v4  (pipeline, v0_inputs, v1_inputs, v2_inputs, barycentric_coordinates.a, barycentric_coordinates.b barycentric_coordinates.c, input_index) 
+
+#define in_flat_f32(input_index) internal_in_flat_f32 (pipeline, v0_inputs, input_index) 
+#define in_flat_v2(input_index)  internal_in_flat_v2  (pipeline, v0_inputs, input_index) 
+#define in_flat_v3(input_index)  internal_in_flat_v3  (pipeline, v0_inputs, input_index) 
+#define in_flat_v4(input_index)  internal_in_flat_v4  (pipeline, v0_inputs, input_index) 
+#define in_flat_m3(input_index)  internal_in_flat_m3  (pipeline, v0_inputs, input_index) 
+#define in_flat_m4(input_index)  internal_in_flat_m4  (pipeline, v0_inputs, input_index) 
+
+void internal_fragment_shader_output(u8 *result_ptr, V4 color_result);
+#define fragment_shader_output(color_result) internal_fragment_shader_output(result_ptr, color_result)
+
 // this is probably very slow, copying byte by byte, but for now ok i guess
 inline void output(Shader_Pipeline *pipeline, u8 *value_ptr, Shader_Value_Type type) {
     if (!pipeline->output_pattern_initialized) { da_append(pipeline->output_pattern, type); }
@@ -154,5 +184,6 @@ inline void output(Shader_Pipeline *pipeline, u8 *value_ptr, Shader_Value_Type t
     u8 *result = arena_push(pipeline->gpu_arena, size);
     memcpy(result, value_ptr, size);
 }
+
 #undef Shader_Value_Types
 

@@ -3,7 +3,6 @@
 #include "render.h"
 #include "engine.h"
 #include "engine_math.h"
-#include "memory.h"
 
 int main(int argc, char **argv) {
     init_engine();
@@ -26,6 +25,7 @@ int main(int argc, char **argv) {
     
     entity2.pos.z += 3.0f;
     entity2.scale = create_v3(5.0f);
+
     while (engine.running) {
         update_delta_time();
         poll_sdl_events();
