@@ -5,197 +5,6 @@
 #include <stdio.h>
 #include <math.h>
 
-void draw_render_entity(Frame_Buffer *frame_buffer, Render_Entity e) {
-    // model to world space
-    M4 scale = m4_scale(e.scale);
-    M4 rotation = m4_rotate(e.rotation);
-    M4 translation = m4_translate(e.pos);
-    M4 model = translation * rotation * scale;
-
-    // world space to view space
-    V3 from = engine.camera.pos;
-    V3 direction = v3_norm(v3_lookat(engine.camera.rotation));
-    V3 to = direction + from;
-    V3 up = create_v3(0.0f, 1.0f, 0.0f);
-
-    // I think this is it? I think the dot products measure the translation
-    // something to do with projection
-    M4 view = m4_transpose(m4_lookat(from, to, up));
-
-    // view space to clip space
-    M4 projection = m4_perspective(
-                                   (f32)engine.frame_buffer.width, (f32)engine.frame_buffer.height, engine.camera.fov,
-                                   engine.camera.near_plane, engine.camera.far_plane
-                                  );
-
-    M4 mvp = projection * view * model;
-    
-    // gotta find a way to take into account depth so i don't draw over stuff that shouldn't
-    for (u32 triangle_index = 0; triangle_index < e.triangle_count; ++triangle_index) {
-        Triangle triangle = e.triangles[triangle_index];
-
-        Clip_Triangle clip_triangle = create_clip_triangle_mvp(triangle, mvp);
-        clip_and_draw_triangle(&engine.frame_buffer, clip_triangle);
-    }
-}
-
-void clip_and_draw_triangle(Frame_Buffer *frame_buffer, Clip_Triangle triangle) {
-    if (triangle_in_view_frustum(triangle)) {
-        V4 v0_pos = triangle.v0.pos;
-        V4 v1_pos = triangle.v1.pos;
-        V4 v2_pos = triangle.v2.pos;
-        
-        Vertex4d v0 = triangle.v0;
-        Vertex4d v1 = triangle.v1;
-        Vertex4d v2 = triangle.v2;
-        
-        // We only really have to clip against the near plane to avoid division by 0 when getting to ndc space
-        // We don't have to worry about the x and y axis since they get clipped at rasterization stage             
-        // Also I worry that by shuffling the order we fuck up the rasterization stage, might need to rearrange vertices
-        
-        assert(v0_pos.w != 0.0f || v1_pos.w != 0.0f || v2_pos.w != 0.0f);
-        // Im pretty sure this is correct and coherent with the math, since 0 <= zclip / wclip <= 1, with 1 being near plane
-        if (v0_pos.z > v0_pos.w) {
-            if (v1_pos.z > v1_pos.w) {
-                clip_and_draw_two_out(frame_buffer, v0, v1, v2); 
-            } else if (v2_pos.z > v2_pos.w) {
-                clip_and_draw_two_out(frame_buffer, v0, v2, v1);
-            } else {
-                clip_and_draw_one_out(frame_buffer, v0, v1, v2);
-            }
-        } else if (v1_pos.z > v1_pos.w) {
-            if (v2_pos.z > v2_pos.w) {
-                clip_and_draw_two_out(frame_buffer, v1, v2, v0);
-            } else {
-                clip_and_draw_one_out(frame_buffer, v1, v0, v2);
-            }
-        } else if (v2_pos.z > v2_pos.w) {
-            clip_and_draw_one_out(frame_buffer, v2, v0, v1);
-        } else {
-            // for the moment being no more clipping necessary
-            draw_triangle(frame_buffer, triangle);
-        }
-    }
-}
-
-// todo: implement float to integer rounding for relevant values
-void draw_triangle(Frame_Buffer *frame_buffer, Clip_Triangle clip_triangle) {
-    f32 width = engine.window.width;
-    f32 height = engine.window.height;
-    f32 half_width = width * 0.5f;
-    f32 half_height = height * 0.5f;
-    
-    // x and y range from [-1, 1] and z [1, 0] (1 being exactly on the near plane and 0 on the far plane)
-    V4 v0_ndc = clip_triangle.v0.pos / clip_triangle.v0.pos.w;
-    V4 v1_ndc = clip_triangle.v1.pos / clip_triangle.v1.pos.w;
-    V4 v2_ndc = clip_triangle.v2.pos / clip_triangle.v2.pos.w;
-    
-    Colorf c0 = color8_to_colorf(clip_triangle.v0.color) / clip_triangle.v0.pos.w;
-    Colorf c1 = color8_to_colorf(clip_triangle.v1.color) / clip_triangle.v1.pos.w;
-    Colorf c2 = color8_to_colorf(clip_triangle.v2.color) / clip_triangle.v2.pos.w;
-
-    // note: we actually use this for calculations and final screen stuff
-    Raster_Vertex v0 = ndc_to_raster(v0_ndc, clip_triangle.v0.pos.w, c0, width, height);
-    Raster_Vertex v1 = ndc_to_raster(v1_ndc, clip_triangle.v1.pos.w, c1, width, height);
-    Raster_Vertex v2 = ndc_to_raster(v2_ndc, clip_triangle.v2.pos.w, c2, width, height);
-    order_vertices_clockwise(&v0, &v1, &v2);
-
-    f32 x_min = round(MAX(MIN(MIN(v0.x, v1.x), v2.x), 0.0f));
-    f32 y_min = round(MAX(MIN(MIN(v0.y, v1.y), v2.y), 0.0f));
-    f32 x_max = round(MIN(MAX(MAX(v0.x, v1.x), v2.x), width - 1.0f));
-    f32 y_max = round(MIN(MAX(MAX(v0.y, v1.y), v2.y), height - 1.0f));
-    
-    V2 p0 = create_v2(x_min, y_min);
-
-    // note: derived these by manually calculating delta w's for cols and rows (weird)
-    f32 delta_w0_col = v1.y - v0.y;
-    f32 delta_w1_col = v2.y - v1.y;
-    f32 delta_w2_col = v0.y - v2.y;
-
-    f32 delta_w0_row = v0.x - v1.x;
-    f32 delta_w1_row = v1.x - v2.x;
-    f32 delta_w2_row = v2.x - v0.x;
-    
-    // because of the previous reordering now i now v0 to v1 is top left, so i don't need to do this (but i'll leave it alone for now)
-    s32 bias0 = is_top_left(v0.xy, v1.xy) ? 0 : -1;
-    s32 bias1 = is_top_left(v1.xy, v2.xy) ? 0 : -1;
-    s32 bias2 = is_top_left(v2.xy, v0.xy) ? 0 : -1;
-    
-    f32 w0_row = edge_function(v0.xy, v1.xy, p0) + bias0;
-    f32 w1_row = edge_function(v1.xy, v2.xy, p0) + bias1;
-    f32 w2_row = edge_function(v2.xy, v0.xy, p0) + bias2;
-    f32 total_area = edge_function(v0.xy, v1.xy, v2.xy);
-    
-    for (s32 y = (s32)y_min; y <= y_max; ++y) {
-        f32 w0 = w0_row;
-        f32 w1 = w1_row;
-        f32 w2 = w2_row;
-
-        for (s32 x = (s32)x_min; x <= x_max; ++x) {
-            // todo: check that this won't fuck up things, i think it should work but this is just intuition
-            b32 inside = (
-                (w0 <= 0.0f && w1 <= 0.0f && w2 <= 0.0f)
-                || (w0 >= 0.0f && w1 >= 0.0f && w2 >= 0.0f)
-            );
-
-            if (inside) {
-                // bug spotted in this, i was using alpha and the ws in order, but it was wrong, remember how the weights are calculated  
-                f32 v0_weight = w1 / total_area;
-                f32 v1_weight = w2 / total_area;
-                f32 v2_weight = w0 / total_area;
-
-                f32 r = v0.color.r * v0_weight + v1.color.r * v1_weight + v2.color.r * v2_weight;
-                f32 g = v0.color.g * v0_weight + v1.color.g * v1_weight + v2.color.g * v2_weight;
-                f32 b = v0.color.b * v0_weight + v1.color.b * v1_weight + v2.color.b * v2_weight;
-                f32 a = v0.color.a * v0_weight + v1.color.a * v1_weight + v2.color.a * v2_weight;
-
-                f32 interpolated_z = 1.0f / (v0.one_over_w * v0_weight + v1.one_over_w * v1_weight + v2.one_over_w * v2_weight);
-
-                r *= interpolated_z * 255.0f;
-                g *= interpolated_z * 255.0f;
-                b *= interpolated_z * 255.0f;
-                a *= interpolated_z * 255.0f;
-
-                u32 rint = round(r);
-                u32 gint = round(g);
-                u32 bint = round(b);
-                u32 aint = round(a);
-
-                u32 color = color_bytes_to_u32(rint, gint, bint, aint);
-
-                // todo: only render pixels that can actually be seen and not behind or too far
-                // todo: actually interact with the depth buffer
-                u64 frame_buffer_index = (u64) x + (u64) y * width;
-                if (interpolated_z < frame_buffer->depth_buffer[frame_buffer_index]) {
-                    put_pixel(frame_buffer, x, y, color);
-                    frame_buffer->depth_buffer[frame_buffer_index] = interpolated_z;
-                }
-            }
-
-            w0 += delta_w0_col;
-            w1 += delta_w1_col;
-            w2 += delta_w2_col;
-        }
-        
-        w0_row += delta_w0_row;
-        w1_row += delta_w1_row;
-        w2_row += delta_w2_row;
-    }
-}
-
-Render_Entity create_triangle_render_entity(Triangle triangle) {
-    Render_Entity result = {};
-
-    // this is obviously bullshit, mostly just for experimenting, later use some
-    // sort of arena or buffer to store small stuff
-    result.triangles = (Triangle *)malloc(sizeof(Triangle));
-    result.triangles[0] = triangle;
-    result.triangle_count = 1;
-    result.scale = create_v3(1.0f);
-
-    return result;
-}
-
 Triangle create_triangle(V3 v0, V3 v1, V3 v2, Color8 c0, Color8 c1, Color8 c2) {
     Triangle result = {};
     result.v0 = v0;
@@ -204,23 +13,6 @@ Triangle create_triangle(V3 v0, V3 v1, V3 v2, Color8 c0, Color8 c1, Color8 c2) {
     result.c0 = c0;
     result.c1 = c1;
     result.c2 = c2;
-
-    return result;
-}
-
-Clip_Triangle create_clip_triangle_mvp(Triangle triangle, M4 mvp) {
-    Clip_Triangle result;
-
-    V4 v0 = v3_to_v4(triangle.v0); v0.w = 1.0f;
-    V4 v1 = v3_to_v4(triangle.v1); v1.w = 1.0f;
-    V4 v2 = v3_to_v4(triangle.v2); v2.w = 1.0f;
-
-    result.v0.pos = mvp * v0;
-    result.v1.pos = mvp * v1;
-    result.v2.pos = mvp * v2;
-    result.v0.color = triangle.c0;
-    result.v1.color = triangle.c1;
-    result.v2.color = triangle.c2;
 
     return result;
 }
@@ -299,8 +91,8 @@ void order_vertices_clockwise_and_info_clockwise(V4 *v0, V4 *v1, V4 *v2, V3u *in
         *v2 = v0_temp;
         
         u32 v0_index_temp = *indices->v0;
-        *indices->v0 = *indices->v2;
-        *indices->v2 = v0_index_temp;
+        indices->v0 = indices->v2;
+        indices->v2 = v0_index_temp;
         
         // note: very weird but i think it works lol
         Clipping_Information temp = *clip_info;
@@ -316,8 +108,8 @@ void order_vertices_clockwise_and_info_clockwise(V4 *v0, V4 *v1, V4 *v2, V3u *in
         *v1 = v2_temp;
         
         u32 v2_index_temp = *indices->v2;
-        *indices->v2 = *indices->v1;
-        *indices->v1 = v2_index_temp;
+        indices->v2 = indices->v1;
+        indices->v1 = v2_index_temp;
         
         Clipping_Information temp = *clip_info;
         
@@ -333,8 +125,8 @@ void order_vertices_clockwise_and_info_clockwise(V4 *v0, V4 *v1, V4 *v2, V3u *in
         *v1 = v0_temp;
         
         u32 v0_index_temp = *indices->v0;
-        *indices->v0 = *indices->v1;
-        *indices->v1 = v0_index_temp;
+        indices->v0 = indices->v1;
+        indices->v1 = v0_index_temp;
         
         Clipping_Information temp = *clip_info;
         clip_info->alpha0_1 = temp.alpha1_0;
@@ -394,33 +186,179 @@ b32 triangle_in_view_frustum(Clip_Triangle t) {
     return true;  
 }
 
-void clip_and_draw_one_out(Frame_Buffer *frame_buffer, Vertex4d out, Vertex4d in1, Vertex4d in2) {
-    f32 in1_distance = in1.pos.w - in1.pos.z;
-    f32 in2_distance = in2.pos.w - in2.pos.z;
-    f32 out_distance = out.pos.w - out.pos.z;
+Clip_Triangle perspective_divide(Clip_Triangle triangle) {
+    Clip_Triangle result = triangle;
+    result.v0 = result.v0 / result.v0.w;
+    result.v1 = result.v1 / result.v1.w;
+    result.v2 = result.v2 / result.v2.w;
+    
+    return result;
+}
+
+void program() {
+    Arena vertex_scratch_arena = arena_init(MiB(2));
+    Arena cpu_arena = arena_init(MiB(50));
+    Arena gpu_arena = arena_init(MiB(60));
+    arena_touch_pages(&vertex_scratch_arena);
+    arena_touch_pages(&cpu_arena);
+    arena_touch_pages(&gpu_arena);
+    
+    V3 *pos = 0;
+    V3 *normals = 0;
+    u64 vertex_count = 0;
+    u64 triangle_count = 0;
+    
+    M4 model = {};
+    M4 view = {};
+    M4 projection = {};
+    
+    Shader_Pipeline pipeline = create_shader_pipeline();
+    
+    add_attribute(&pipeline, (u8*)pos, Shader_Value_Type_V3, vertex_count);
+    add_attribute(&pipeline, (u8*)normals, Shader_Value_Type_V3, vertex_count);
+
+    add_uniform(&pipeline, &model, Shader_Value_Type_M4);
+    add_uniform(&pipeline, &view, Shader_Value_Type_M4);
+    add_uniform(&pipeline, &projection, Shader_Value_Type_M4);
+    
+    while (running) {
+        for (u64 vertex_index = 0; vertex_index < vertex_count; ++vertex_index) {
+            u8 *output_ptr = arena_push_struct(&pipeline->gpu_arena, sizeof(V4), 1);
+            V3 pos = load_attribute_v3(&pipeline, 0, vertex_index);
+            V3 normal = load_attribute_v3(&pipeline, 1, vertex_index);
+            
+            M4 model = load_uniform_m4(&pipeline, 0);
+            M4 view = load_uniform_m4(&pipeline, 1);
+            M4 projection = load_uniform_m4(&pipeline, 2);
+            
+            // under the hood it pushes a v4 pos and a v3 normal together
+            output_pos(output_ptr, projection * view * model * create_v4(pos, 1.0f)); 
+            output_v3(&pipeline, normal);
+        }
+        
+        // vertices are in clip space, so time to clip
+        for (u64 triangle_index = 0; triangle_index < triangle_count; ++triangle_index) {
+            V3u triangle_indices = get_vertex_indices(&pipeline, triangle_index);
+            Clip_Triangle triangle = get_triangle(&pipeline, triangle_indices); // do this
+            
+            V4 v0_pos = triangle.v0;
+            V4 v1_pos = triangle.v1;
+            V4 v2_pos = triangle.v2;
+            
+            if (triangle_in_view_frustum(triangle)) {
+                if (v0_pos.z > v0_pos.w) {
+                    if (v1_pos.z > v1_pos.w) {
+                        clip_and_draw_two_out(&pipeline, triangle_indices.v0, triangle_indices.v1, triangle_indices.v2); 
+                    } else if (v2_pos.z > v2_pos.w) {
+                        clip_and_draw_two_out(&pipeline, triangle_indices.v0, triangle_indices.v2, triangle_indices.v1);
+                    } else {
+                        clip_and_draw_one_out(&pipeline, triangle_indices.v0, triangle_indices.v1, triangle_indices.v2);
+                    }
+                } else if (v1_pos.z > v1_pos.w) {
+                    if (v2_pos.z > v2_pos.w) {
+                        clip_and_draw_two_out(&pipeline, triangle_indices.v1, triangle_indices.v2, triangle_indices.v0);
+                    } else {
+                        clip_and_draw_one_out(&pipeline, triangle_indices.v1, triangle_indices.v0, triangle_indices.v2);
+                    }
+                } else if (v2_pos.z > v2_pos.w) {
+                    clip_and_draw_one_out(&pipeline, triangle_indices.v2, triangle_indices.v0, triangle_indices.v1);
+                } else {
+                    u8 *v0_inputs = get_inputs_ptr(&pipeline, triangle_indices.v0);
+                    u8 *v1_inputs = get_inputs_ptr(&pipeline, triangle_indices.v1);
+                    u8 *v2_inputs = get_inputs_ptr(&pipeline, triangle_indices.v2);
+            
+                    draw_triangle(&pipeline, v0_inputs, v1_inputs, v2_inputs);
+                }
+            }
+        }
+    }
+}
+
+u64 get_shader_value_type_array_size(Shader_Value_Array *arr) {
+    u64 result = 0;
+    for (u64 index = 0; index < arr->count; ++index) {
+        u64 size = get_shader_value_type_size(arr->items[index].type);
+        result += size;
+    }
+    
+    return result;
+}
+
+u8 *get_inputs_ptr(Shader_Pipeline *pipeline, u64 vertex_index) {
+    u8 *result = 0;
+    u64 pattern_size = get_shader_value_type_array_size(pipeline->output_pattern);
+    
+    // todo: to take into account different things we need the offset or pointer to the start of outputs or whatever
+    result = pipeline->gpu_arena->data + pattern_size;
+    return result;
+}
+
+V4 get_pos(Shader_Pipeline *pipeline, u64 vertex_index) {
+    V4 result = {};
+    V4 *val_ptr = (V4*)get_inputs_ptr(pipeline, vertex_index);
+    result = *val_ptr; // this is because the position is the first element of the inputs array
+    
+    return result;
+}
+
+void clip_and_draw_one_out(Shader_Pipeline *pipeline, u32 out_index, u32 in1_index, u32 in2_index) {
+    V4 out = get_vertex(pipeline, out_index); // todo: implement this lol
+    V4 in1 = get_vertex(pipeline, in1_index);
+    V4 in2 = get_vertex(pipeline, in2_index);
+    
+    f32 in1_distance = in1.w - in1.z;
+    f32 in2_distance = in2.w - in2.z;
+    f32 out_distance = out.w - out.z;
     
     f32 alpha0 = out_distance / (out_distance - in1_distance);
     f32 alpha1 = out_distance / (out_distance - in2_distance);
     
-    Vertex4d a = vertex4d_lerp(out, in1, alpha0);
-    Vertex4d b = vertex4d_lerp(out, in2, alpha1);
+    V3u indices0 = (V3u) { in1_index, in2_index, out_index };
+    V3u indices1 = (V3u) { in1_index, in2_index, out_index };
     
-    Clip_Triangle t0;
-    Clip_Triangle t1; 
+    // manually derived on notebook
+    Clipping_Information clip_info0 = {};
+    clip_info0.alpha0_1 = 0.0f; clip_info0.alpha1_0 = 0.0f;
+    clip_info0.alpha0_2 = 0.0f; clip_info0.alpha2_0 = alpha0;
+    clip_info0.alpha1_2 = 0.0f; clip_info0.alpha2_1 = alpha1;
     
-    t0.v0 = in1;
-    t0.v1 = in2;
-    t0.v2 = a;
+    Clipping_Information clip_info1 = {};
+    clip_info1.alpha0_1 = 0.0f; clip_info1.alpha1_0 = 0.0f;
+    clip_info1.alpha0_2 = 1.0f - alpha0; clip_info.alpha2_0 = alpha0;
+    clip_info1.alpha1_2 = 0.0f; clip_info1.alpha2_1 = alpha1;
     
-    t1.v0 = in2;
-    t1.v1 = a;
-    t1.v2 = b;
+    order_vertices_and_info_clockwise(&in1, &in2, &out, &indices0, &clip_info0);
+    order_vertices_and_info_clockwise(&in1, &in2, &out, &indices1, &clip_info1);
     
-    draw_triangle(frame_buffer, t0);
-    draw_triangle(frame_buffer, t1);
+    // note: weird thing lol but basically copying to scratch arena
+    u64 pattern_size = get_shader_value_type_array_size(&pipeline->output_pattern);
+    u8 *v0_ptr0 = arena_push(&pipeline->clipping_arena, pattern_size);
+    memcpy(v0_ptr0, get_inputs_ptr(indices0.v0), pattern_size);
+    u8 *v1_ptr0 = arena_push(&pipeline->clipping_arena, pattern_size);
+    memcpy(v1_ptr0, get_inputs_ptr(indices0.v1), pattern_size);
+    u8 *v2_ptr0 = arena_push(&pipeline->clipping_arena, pattern_size);
+    memcpy(v2_ptr0, get_inputs_ptr(indices0.v2), pattern_size);
+    
+    u8 *v0_ptr1 = arena_push(&pipeline->clipping_arena, pattern_size);
+    memcpy(v0_ptr1, get_inputs_ptr(indices1.v0), pattern_size);
+    u8 *v1_ptr1 = arena_push(&pipeline->clipping_arena, pattern_size);
+    memcpy(v1_ptr1, get_inputs_ptr(indices1.v1), pattern_size);
+    u8 *v1_ptr1 = arena_push(&pipeline->clipping_arena, pattern_size);
+    memcpy(v2_ptr1, get_inputs_ptr(indices1.v2), pattern_size);
+    
+    interpolate_clipped_inputs(pipeline, v0_ptr0, v1_ptr0, v2_ptr0, clip_info0);
+    interpolate_clipped_inputs(pipeline, v0_ptr1, v1_ptr1, v2_ptr1, clip_info1);
+    
+    draw_triangle(pipeline, v0_ptr0, v1_ptr0, v2_ptr0);
+    draw_triangle(pipeline, v0_ptr1, v1_ptr1, v2_ptr1);
 }
 
-void clip_and_draw_two_out(Frame_Buffer *frame_buffer, Vertex4d out1, Vertex4d out2, Vertex4d in) {
+
+void clip_and_draw_two_out(Shader_Pipeline *pipeline, u32 out1_index, u32 out2_index, u32 in_index) {
+    V4 out1 = get_vertex(pipeline, out1_index); // todo: implement this lol
+    V4 out2 = get_vertex(pipeline, out2_index);
+    V4 in = get_vertex(pipeline, in_index);
+    
     f32 in_distance = in.pos.w - in.pos.z;
     f32 out1_distance = out1.pos.w - out1.pos.z;
     f32 out2_distance = out2.pos.w - out2.pos.z;
@@ -428,22 +366,457 @@ void clip_and_draw_two_out(Frame_Buffer *frame_buffer, Vertex4d out1, Vertex4d o
     f32 alpha0 = out1_distance / (out1_distance - in_distance);
     f32 alpha1 = out2_distance / (out2_distance - in_distance);
     
-    Vertex4d a = vertex4d_lerp(out1, in, alpha0);
-    Vertex4d b = vertex4d_lerp(out2, in, alpha1);
+    // note: i think this stuff works, but need to check out
+    V3u indices = { out1_index, in_index, out2_index };
     
-    Clip_Triangle triangle;
-    triangle.v0 = in;
-    triangle.v1 = a;
-    triangle.v2 = b;
+    Clipping_Information clip_info;
+    clip_info.alpha0_1 = alpha0; clip_info.alpha_1_0 = 0.0f;
+    clip_info.alpha1_2 = 0.0f; clip_info.alpha_2_1 = alpha1;
+    clip_info.alpha2_0 = 0.0f; clip_info.alpha0_2 = 0.0f;
     
-    draw_triangle(frame_buffer, triangle);
+    order_vertices_and_info_clockwise(&a, &in, &b, &indices, &clip_info);
+    
+    u64 pattern_size = get_shader_value_type_array_size(&pipeline->output_pattern);
+    u8 *v0_ptr = arena_push(&pipeline->clipping_arena, pattern_size);
+    memcpy(v0_ptr, get_inputs_ptr(indices.v0), pattern_size);
+    
+    u8 *v1_ptr = get_inputs_ptr(pipeline, in_index);
+    
+    u8 *v2_ptr = arena_push(&pipeline->clipping_arena, pattern_size);
+    memcpy(v2_ptr, get_inputs_ptr(indices.v2), pattern_size);
+    
+    interpolate_clipped_inputs(pipeline, v0_ptr, v1_ptr, v2_ptr, clip_info);
+    
+    draw_triangle(pipeline, v0_ptr, v1_ptr, v2_ptr);
 } 
 
-// if more attributes come in the future might want to check out
-Vertex4d vertex4d_lerp(Vertex4d a, Vertex4d b, f32 alpha) {
-    Vertex4d result;
-    result.pos = v4_lerp(a.pos, b.pos, alpha);
-    result.color = color8_lerp(a.color, b.color, alpha);
+void interpolate_clipped_inputs(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, Clipping_Information clip_info) {
+    u64 input_count = pipeline->output_pattern.count;
+    u64 offset = 0;
+    for (u64 input_index = 0; input_index < input_count; ++input_index) {
+        Shader_Value_Type type = pipeline->output_pattern.items[input_index];
+        
+        switch (type) {
+            case Shader_Value_Type_f32: {
+                f32 *v0 = (f32*) v0_ptr + offset;
+                f32 *v1 = (f32*) v1_ptr + offset;
+                f32 *v2 = (f32*) v2_ptr + offset;
+                
+                *v0 = lerp(*v0, *v1, clip_info.alpha0_1);     
+                *v0 = lerp(*v0, *v2, clip_info.alpha0_2);     
+  
+                *v1 = lerp(*v1, *v0, clip_info.alpha1_0);     
+                *v1 = lerp(*v1, *v2, clip_info.alpha1_2);     
+ 
+                *v2 = lerp(*v2, *v0, clip_info.alpha2_0);     
+                *v2 = lerp(*v2, *v1, clip_info.alpha2_1);     
+                
+                break;
+            }
+            case Shader_Value_Type_V2: {
+                V2 *v0 = (V2*) v0_ptr + offset;
+                V2 *v1 = (V2*) v1_ptr + offset;
+                V2 *v2 = (V2*) v2_ptr + offset;
+                
+                *v0 = v2_lerp(*v0, *v1, clip_info.alpha0_1);     
+                *v0 = v2_lerp(*v0, *v2, clip_info.alpha0_2);     
+
+                *v1 = v2_lerp(*v1, *v0, clip_info.alpha1_0);     
+                *v1 = v2_lerp(*v1, *v2, clip_info.alpha1_2);     
+
+                *v2 = v2_lerp(*v2, *v0, clip_info.alpha2_0);     
+                *v2 = v2_lerp(*v2, *v1, clip_info.alpha2_1);     
+                
+                break;
+            }
+            case Shader_Value_Type_V3: {
+                V3 *v0 = (V3*) v0_ptr + offset;
+                V3 *v1 = (V3*) v1_ptr + offset;
+                V3 *v2 = (V3*) v2_ptr + offset;
+                
+                *v0 = v3_lerp(*v0, *v1, clip_info.alpha0_1);     
+                *v0 = v3_lerp(*v0, *v2, clip_info.alpha0_2);     
+
+                *v1 = v3_lerp(*v1, *v0, clip_info.alpha1_0);     
+                *v1 = v3_lerp(*v1, *v2, clip_info.alpha1_2);     
+
+                *v2 = v3_lerp(*v2, *v0, clip_info.alpha2_0);     
+                *v2 = v3_lerp(*v2, *v1, clip_info.alpha2_1);     
+                
+                break;
+            }
+            case Shader_Value_Type_V4: {
+                V4 *v0 = (V4*) v0_ptr + offset;
+                V4 *v1 = (V4*) v1_ptr + offset;
+                V4 *v2 = (V4*) v2_ptr + offset;
+                
+                *v0 = v4_lerp(*v0, *v1, clip_info.alpha0_1);     
+                *v0 = v4_lerp(*v0, *v2, clip_info.alpha0_2);     
+
+                *v1 = v4_lerp(*v1, *v0, clip_info.alpha1_0);     
+                *v1 = v4_lerp(*v1, *v2, clip_info.alpha1_2);     
+
+                *v2 = v4_lerp(*v2, *v0, clip_info.alpha2_0);     
+                *v2 = v4_lerp(*v2, *v1, clip_info.alpha2_1);     
+                
+                break;
+            }
+            case Shader_Value_Type_M3:
+            case Shader_Value_Type_M4:
+            default:
+                break;
+        }
+        
+        offset += get_shader_value_type_size(type);
+    }
+}
+
+draw_triangle(Shader_Pipeline *pipeline, u8 *v0_inputs, u8 *v1_inputs, u8 *v2_inputs) {
+    Clip_Triangle ndc_triangle = perspective_divide(clipped_triangle);        
+    assert(!triangle_should_be_clipped(ndc_triangle));
+    
+    u64 width = engine.window.width;
+    u64 height = engine.window.height;
+    
+    Raster_Vertex v0 = ndc_to_raster(ndc_triangle.v0, 1.0f / clip_triangle.v0.w, width, height);
+    Raster_Vertex v1 = ndc_to_raster(ndc_triangle.v1, 1.0f / clip_triangle.v1.w, width, height);
+    Raster_Vertex v2 = ndc_to_raster(ndc_triangle.v2, 1.0f / clip_triangle.v2.w, width, height);            
+    
+    f32 x_min = round(MAX(MIN(MIN(v0.x, v1.x), v2.x), 0.0f));
+    f32 y_min = round(MAX(MIN(MIN(v0.y, v1.y), v2.y), 0.0f));
+    f32 x_max = round(MIN(MAX(MAX(v0.x, v1.x), v2.x), width - 1.0f));
+    f32 y_max = round(MIN(MAX(MAX(v0.y, v1.y), v2.y), height - 1.0f));
+    
+    V2 p0 = create_v2(x_min, y_min);
+
+    // note: derived these by manually calculating delta w's for cols and rows (weird)
+    f32 delta_w0_col = v1.y - v0.y;
+    f32 delta_w1_col = v2.y - v1.y;
+    f32 delta_w2_col = v0.y - v2.y;
+
+    f32 delta_w0_row = v0.x - v1.x;
+    f32 delta_w1_row = v1.x - v2.x;
+    f32 delta_w2_row = v2.x - v0.x;
+    
+    // because of the previous reordering now i now v0 to v1 is top left, so i don't need to do this (but i'll leave it alone for now)
+    s32 bias0 = is_top_left(v0.xy, v1.xy) ? 0 : -1;
+    s32 bias1 = is_top_left(v1.xy, v2.xy) ? 0 : -1;
+    s32 bias2 = is_top_left(v2.xy, v0.xy) ? 0 : -1;
+    
+    f32 w0_row = edge_function(v0.xy, v1.xy, p0) + bias0;
+    f32 w1_row = edge_function(v1.xy, v2.xy, p0) + bias1;
+    f32 w2_row = edge_function(v2.xy, v0.xy, p0) + bias2;
+    f32 total_area = edge_function(v0.xy, v1.xy, v2.xy);
+    
+    for (s32 y = (s32)y_min; y <= y_max; ++y) {
+        f32 w0 = w0_row;
+        f32 w1 = w1_row;
+        f32 w2 = w2_row;
+
+        for (s32 x = (s32)x_min; x <= x_max; ++x) {
+            b32 inside = (
+                (w0 <= 0.0f && w1 <= 0.0f && w2 <= 0.0f)
+                || (w0 >= 0.0f && w1 >= 0.0f && w2 >= 0.0f)
+            );
+
+            if (inside) {
+                f32 v0_weight = w1 / total_area;
+                f32 v1_weight = w2 / total_area;
+                f32 v2_weight = w0 / total_area;
+
+                V3 normal = in_smooth_v3(pipeline, 0, v0_weight, v1_weight, v2_weight, indices, clip_info);
+                V2 pos = { x, y };
+                
+                u32 result = pipeline->fragment_shader.function(pipeline, v0_inputs, v1_inputs, v2_inputs, barycentric_coordinates);
+                u32 fragment_shader_thing(Shader_Pipeline *pipeline, u8 *v0_inputs, u8 *v1_inputs, u8 *v2_input, barycentric_coordinates) {
+                    M4 model = load_uniform_m4(pipeline, 0);
+                    
+                    V3 normal = internal_in_smooth_v3(pipeline, v0_inputs, v1_inputs, v2_inputs, barycentric_coordinates.a, barycentric_coordinates.b, barycentric_coordinates.c, 0);
+                    V3 normal = in_smooth_v3(0);
+                }
+                f32 interpolated_z = 1.0f / (v0.one_over_w * v0_weight + v1.one_over_w * v1_weight + v2.one_over_w * v2_weight);
+                
+                if (pipeline.depth_testing) {
+                    if (interpolated_z > frame_buffer->depth_buffer[x + y * width]) {
+                        put_pixel(pipeline.frame_buffer, x, y, result);
+                        pipeline.frame_buffer[x + y * width] = interpolated_z;
+                    }
+                } else {
+                    put_pixel(pipeline.frame_buffer, x, y, result);
+                }
+            }
+
+            w0 += delta_w0_col;
+            w1 += delta_w1_col;
+            w2 += delta_w2_col;
+        }
+        
+        w0_row += delta_w0_row;
+        w1_row += delta_w1_row;
+        w2_row += delta_w2_row;
+    }
+}
+
+
+u64 get_pattern_offset(Shader_Value_Type_Array *pattern, u64 input_index) {
+    u64 result = 0;
+    for (u64 index = 0; index < input_index; ++index) {
+        Shader_Value_Type type = pattern->items[index];
+        u64 size = get_shader_value_type_size(type);
+        result += size;
+    }
     
     return result;
 }
+
+void add_attribute(Shader_Pipeline *pipeline, u8 *data, Shader_Value_Type type, u64 count) {
+    Vertex_Attribute result = {};
+    result.type = type;
+    result.count = count;
+    result.data = data;
+    
+    da_append(pipeline->attributes, result);
+}
+    
+void add_uniform(Shader_Pipeline *pipeline, u8 *data, Shader_Value_Type type) {
+    Shader_Uniform result = {};
+    result.type = type;
+    result.data = data;
+    
+    da_append(pipeline->uniforms, result);
+};    
+
+Shader_Pipeline create_shader_pipeline(Arena *clipping_arena, Vertex_Shader vertex_shader, Fragment_Shader fragment_shader) {
+    Shader_Pipeline result = {};
+    da_init(result.uniforms);
+    da_init(result.attributes);
+    da_init(result.output_pattern);
+    result.clipping_arena = clipping_arena;
+    result.vertex_shader = vertex_shader;
+    result.fragment_shader = fragment_shader;
+    
+    Shader_Value_Type v4_type = Shader_Value_Type_V4;
+    da_append(result.output_pattern, v4_type);
+    
+    return result;
+};
+
+// todo: for now we don't have ebo implemented, but when we do we want to change this
+V3u get_vertex_indices(Shader_Pipeline *pipeline, u64 triangle_index) {
+    V3u result = {};
+    u64 index = triangle_index * 3;
+    result.v0 = index;
+    result.v1 = index + 1;
+    result.v2 = index + 2;
+    
+    return result;
+}
+
+Clip_Triangle get_triangle(Shader_Pipeline *pipeline, V3u triangle_indices) {
+    Clip_Triangle result = {};
+    u64 offset = get_shader_value_type_array_size(pipeline->output_pattern);
+    
+    result.v0 = *(V4*)(pipeline->gpu_arena->data + offset * triangle_indices.v0);
+    result.v1 = *(V4*)(pipeline->gpu_arena->data + offset * triangle_indices.v1);
+    result.v2 = *(V4*)(pipeline->gpu_arena->data + offset * triangle_indices.v2);
+    
+    return result;
+}
+
+// todo: some form of error handling or something like that
+// note: consider manually inlining all of this
+f32 load_attribute_f32(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    f32 result = 0.0f;
+    result = *((f32*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+V2 load_attribute_v2(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V2 result = {};
+    result = *((V2*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+V3 load_attribute_v3(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V3 result = {};
+    result = *((V3*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+V4 load_attribute_v4(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V3 result = {};
+    result = *((V4*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+M3 load_attribute_m3(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V3 result = {};
+    result = *((M3*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+M4 load_attribute_m4(Shader_Pipeline *pipeline, u64 vertex_index, u64 attribute_index) {
+    V3 result = {};
+    result = *((M4*)pipeline->attributes.items[attribute_index].data + vertex_index);
+    
+    return result;
+}
+
+// todo: check if this shit even works lol
+f32 load_uniform_f32(Shader_Pipeline *pipeline, u64 uniform_index) {
+    f32 result = 0.0f;
+    result = *((f32*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+V2 load_uniform_v2(Shader_Pipeline *pipeline, u64 uniform_index) {
+    V2 result = 0.0f;
+    result = *((V2*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+V3 load_uniform_v3(Shader_Pipeline *pipeline, u64 uniform_index) {
+    V3 result = 0.0f;
+    result = *((V3*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+V4 load_uniform_v4(Shader_Pipeline *pipeline, u64 uniform_index) {
+    V4 result = 0.0f;
+    result = *((V4*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+M3 load_uniform_m3(Shader_Pipeline *pipeline, u64 uniform_index) {
+    V2 result = 0.0f;
+    result = *((M3*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+M4 load_uniform_m4(Shader_Pipeline *pipeline, u64 uniform_index) {
+    M4 result = 0.0f;
+    result = *((M4*)pipeline->uniforms.items[attribute_index].data);
+    
+    return result;
+};
+
+// todo: i think now that we've clipped we can just multiply by barycentric coordinates
+f32 internal_in_smooth_f32(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index) {
+    f32 result = 0.0f; 
+    f32 v0 = in_f32(pipeline, v0_ptr, input_index);
+    f32 v1 = in_f32(pipeline, v1_ptr, input_index);
+    f32 v2 = in_f32(pipeline, v2_ptr, input_index);
+    
+    result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
+    return result;
+}
+
+V2 internal_in_smooth_v2(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index) {
+    V2 result = {};
+    V2 v0 = in_v2(pipeline, v0_ptr, input_index);
+    V2 v1 = in_v2(pipeline, v1_ptr, input_index);
+    V2 v2 = in_v2(pipeline, v2_ptr, input_index);    
+    
+    result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
+    return result;
+}
+
+V3 internal_in_smooth_v3(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index) {
+    V3 result = {};
+    V3 v0 = in_v3(pipeline, v0_ptr, input_index);
+    V3 v1 = in_v3(pipeline, v1_ptr, input_index);
+    V3 v2 = in_v3(pipeline, v2_ptr, input_index);    
+    
+    result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
+    return result;
+}
+
+V4 internal_in_smooth_v4(Shader_Pipeline *pipeline, u8 *v0_ptr, u8 *v1_ptr, u8 *v2_ptr, f32 v0_weight, f32 v1_weight, f32 v2_weight, u64 input_index) {
+    V4 result = {};
+    V4 v0 = in_v4(pipeline, v0_ptr, input_index);
+    V4 v1 = in_v4(pipeline, v1_ptr, input_index);
+    V4 v2 = in_v4(pipeline, v2_ptr, input_index);    
+    
+    result = v0_weight * v0 + v1_weight * v1 + v2_weight * v2;
+    return result;
+}
+
+// todo: check that this actually works, and see if simpler way to do it
+f32 internal_in_flat_f32(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
+    f32 result = 0.0f;
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
+    u8 *value_ptr = input_ptr + pattern_offset;
+    result = *(f32*)value_ptr;
+    
+    return result;
+}
+
+V2 internal_in_flat_v2(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
+    V2 result = {};
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
+    u8 *value_ptr = input_ptr + pattern_offset;
+    result = *(V2*)value_ptr;
+    
+    return result;
+}
+
+V3 internal_in_flat_v3(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
+    V3 result = {};
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
+    u8 *value_ptr = input_ptr + pattern_offset;
+    result = *(V3*)value_ptr;
+    
+    return result;
+}
+
+V4 internal_in_flat_v4(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
+    V4 result = {};
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
+    u8 *value_ptr = input_ptr + pattern_offset;
+    result = *(V4*)value_ptr;
+    
+    return result;
+}
+
+M3 internal_in_flat_m3(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
+    M3 result = {};
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
+    u8 *value_ptr = input_ptr + pattern_offset;
+    result = *(M3*)value_ptr;
+    
+    return result;
+}
+
+M4 internal_in_flat_m4(Shader_Pipeline *pipeline, u8 *input_ptr, u64 input_index) {
+    M4 result = {};
+    u64 pattern_offset = get_pattern_offset(pipeline->output_pattern, input_index);
+    u8 *value_ptr = input_ptr + pattern_offset;
+    result = *(M4*)value_ptr;
+    
+    return result;
+}
+
+void internal_fragment_shader_output(u8 *result_ptr, V4 color_result) {
+    V4 *color = (V4*)output;
+    *color = result;
+}
+
+FRAGMENT_SHADER_FUNCTION diffuse(FRAGMENT_SHADER_PARAMETERS) {
+    M4 model = uniform_m4(0);
+    V3 normal = in_smooth_v3(0);
+    
+    V4 result = create_v4(normal) * create_v4(1.0f, 1.0f, 1.0f, 1.0f);
+    
+    fragment_shader_output(result);
+}
+
