@@ -492,6 +492,16 @@ inline V4 create_v4() {
     return result;
 }
 
+inline V4 create_v4(V3 v, f32 w) {
+    V4 result;
+    result.x = v.x;
+    result.y = v.y;
+    result.z = v.z;
+    result.w = w;
+    
+    return result;
+}
+
 inline V4 v3_to_v4(V3 v) {
     V4 result;
     result.x = v.x;
